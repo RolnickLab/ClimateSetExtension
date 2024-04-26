@@ -18,8 +18,9 @@ be possible to create you own environment with, for example, poetry, pyenv or vi
 **Do note that this project is configured to use [Poetry](https://python-poetry.org/)
 and as such, this tool is required to install it.**
 
-Poetry is included in the [environment.yml](environment.yml) used by the commands below to
-create a conda environment.
+Poetry is not included in the [environment.yml](environment.yml), due to some problems
+in compute cluster environments, but will be installed automatically if needed
+by most `install` targets.
 
 If you need or want to install Conda:
 ```
@@ -34,10 +35,17 @@ make create-env
 After you have created your Conda environment, or you want to manage your environment 
 yourself, make sure to activate it properly before installing this package.
 
-To install the package and its CLI tools:
+To install the package, development dependencies and CLI tools (if available):
 ```
 make install
 ```
+
+To install only the package, without development tools:
+```
+make install-package
+```
+
+
 
 ## Basic automations
 
@@ -65,7 +73,6 @@ To run all tests, including the integration test:
 ```
 make test-all
 ```
-
 
 ## Data
 
