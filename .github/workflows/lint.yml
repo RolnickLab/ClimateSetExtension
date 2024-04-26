@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
+  Pylint:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
