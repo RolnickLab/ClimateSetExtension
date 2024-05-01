@@ -33,4 +33,4 @@ jobs:
 
       - name: Run Pre-commit checks
         run: |
-          make pre-commit
+          make precommit
