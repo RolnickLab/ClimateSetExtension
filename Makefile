@@ -174,11 +174,15 @@ bump-patch: ## Bump application major version  <0.0.X>
 ## -- Linting targets ----------------------------------------------------------------------------------------------- ##
 
 .PHONY: check-lint
-check-lint: ## Check code linting
+check-lint: ## Check code linting (black, isort, flake8 and pylint)
 	poetry run tox -e black,isort,flake8,pylint
 
+.PHONY: check-pylint
+check-pylint: ## Check code with pylint
+	poetry run tox -e pylint
+
 .PHONY: fix-lint
-fix-lint: ## Fix code linting
+fix-lint: ## Fix code linting (black, isort, flynt)
 	poetry run tox -e fix
 
 .PHONY: precommit
