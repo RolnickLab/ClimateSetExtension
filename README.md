@@ -10,6 +10,15 @@ machine there's a good chance this will work on your machine.
 
 Please consult the [Makefile](Makefile) before trying to use it.
 
+## Basic Information
+
+Much of this repository is organized through the Makefile.
+
+The different targets and their description can be examined by executing the command
+`make targets`
+
+![](images/make_targets.png)
+
 ## Installation
 
 This project assumes environment management will be done with Conda. It would, however,
@@ -45,8 +54,6 @@ To install only the package, without development tools:
 make install-package
 ```
 
-
-
 ## Basic automations
 
 To run linting checks with `flake8`, `pylint`, `black` and `isort`:
@@ -59,9 +66,9 @@ To fix linting with `black`, `flynt` and `isort`:
 make fix-lint
 ```
 
-To run a `pre-commit` check before actually commiting:
+To run a `pre-commit` check before actually committing:
 ```
-make pre-commit
+make precommit
 ```
 
 To run tests:
@@ -86,18 +93,8 @@ will probably be the way to go.
 
 ## Contributing to this repository
 
-### Design patterns
-Two main considerations have been made in the structure of this package.
+See [Contributing guide lines](CONTRIBUTING.md)
 
-First, a polymorphic approach, using abstract classes and their concrete implementation,
-has been but forward in order to increase maintainability and extensibility.
-
-Therefore, new additions should try to follow this design pattern and either implement
-new concrete classes or create new abstract classes and their implementations for 
-completely new behavior or needs.
-
-Secondly, a dependency-injection approach is to be favored, as well as a composition 
-approach when creating new modules or extending existing ones.
 
 ### Configurations
 Configurations are in the [config/](config) folder.
