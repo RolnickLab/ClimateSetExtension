@@ -93,7 +93,7 @@ will probably be the way to go.
 
 ## Contributing to this repository
 
-See [Contributing guide lines](CONTRIBUTING.md)
+See [Contributing guidelines](CONTRIBUTING.md)
 
 
 ### Configurations
