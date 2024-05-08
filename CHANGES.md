@@ -1,6 +1,9 @@
 # CHANGES.md
 
-[Unreleased](https://github.com/RolnickLab/ClimateSetExtension) (latest)
+[Unreleased](https://github.com/RolnickLab/ClimateSetExtension/tree/main) (latest)
 -------------------------------------------------------------------------------------
-	
-[//]: # (New changes here in list form)
+
+- Project initialization
+- Add linting tools
+- Add CI
+- Add basic structure of package
