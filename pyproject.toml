@@ -44,7 +44,6 @@ build-backend = "poetry.core.masonry.api"
 #
 # Tools
 #
-
 [tool.bumpversion]
 current_version = "0.0.0"
 commit = true
@@ -64,8 +63,8 @@ replace = 'version = "{new_version}"'
 
 [[tool.bumpversion.files]]
 filename = "Makefile"
-search = 'APP_VERSION := "{current_version}"'
-replace = 'APP_VERSION := "{new_version}"'
+search = "APP_VERSION := {current_version}"
+replace = "APP_VERSION := {new_version}"
 
 [[tool.bumpversion.files]]
 filename = "CHANGES.md"
@@ -110,3 +109,9 @@ profile = "black"
 line-length = 120
 transform-concats = true
 verbose = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+markers = ["offline: mark a test as needing to be run offline.", ]
