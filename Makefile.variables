@@ -1,0 +1,2 @@
+APPLICATION_NAME := climateset
+CONDA_ENVIRONMENT := climateset

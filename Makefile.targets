@@ -1,0 +1,5 @@
+## -- Project targets ------------------------------------------------------------------------------------------------ ##
+
+.PHONY: custom-target-example
+custom-target-example: ## Example custom target
+	@echo The name of the package contained in this repository is [$(APPLICATION_NAME)]
