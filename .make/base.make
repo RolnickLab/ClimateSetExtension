@@ -1,28 +1,26 @@
-########################################################################################
-#
 # DO NOT MODIFY!!!
 # If necessary, override the corresponding variable and/or target, or create new ones
 # in one of the following files, depending on the nature of the override :
 #
-# `Makefile.variables`, `Makefile.targets` or `Makefile.private`,
+# Makefile.variables, Makefile.targets or Makefile.private`,
 #
 # The only valid reason to modify this file is to fix a bug or to add new
 # files to include.
 #
 # Please report bugs to francis.pelletier@mila.quebec
-########################################################################################
 
-## Basic variables
+# Basic variables
 PROJECT_PATH := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 MAKEFILE_NAME := $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 SHELL := /usr/bin/env bash
 BUMP_TOOL := bump-my-version
 APP_VERSION := 0.0.0
 DOCKER_COMPOSE ?= docker compose
+POETRY_VERSION := 1.8.2
 
-## Conda variables
+# Conda variables
 # CONDA_TOOL can be overridden in Makefile.private file
-CONDA_TOOL ?= conda
+CONDA_TOOL := conda
 CONDA_ENVIRONMENT ?=
 
 # Colors
@@ -37,9 +35,9 @@ _NORMAL  := \033[0m
 all: help
 
 # Auto documented help targets & sections from comments
-#	- detects lines marked by double #, then applies the corresponding target/section markup
-#   - target comments must be defined after their dependencies (if any)
-#	- section comments must have at least a double dash (-)
+#	detects lines marked by double #, then applies the corresponding target/section markup
+#   target comments must be defined after their dependencies (if any)
+#	section comments must have at least a double dash (-)
 #
 # 	Original Reference:
 #		https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
@@ -51,30 +49,31 @@ all: help
 
 .PHONY: help
 # note: use "\#\#" to escape results that would self-match in this target's search definition
-help:	## print this help message (default)
+help: ## print this help message (default)
 	@echo ""
 	@echo "Please use 'make <target>' where <target> is one of below options."
 	@echo ""
 	@for makefile in $(MAKEFILE_LIST); do \
-		grep -E '\#\#.*$$' "$(PROJECT_PATH)/$${makefile}" \
-			| awk ' BEGIN {FS = "(:|\-\-\-)+.*?\#\# "}; \
-				/\--/ {printf "$(_SECTION)%s$(_NORMAL)\n", $$1;} \
-				/:/   {printf "    $(_TARGET)%-24s$(_NORMAL) %s\n", $$1, $$2} \
-			' ; \
-	done
+        grep -E '\#\#.*$$' "$(PROJECT_PATH)/$${makefile}" | \
+            awk 'BEGIN {FS = "(:|\-\-\-)+.*\#\# "}; \
+            	/\--/ {printf "$(_SECTION)%s$(_NORMAL)\n", $$1;} \
+				/:/  {printf "    $(_TARGET)%-24s$(_NORMAL) %s\n", $$1, $$2} ' 2>/dev/null ; \
+    done
+
 .PHONY: targets
 targets: help
 
 .PHONY: version
-version:	## display current version
-	@-echo "version: $(APP_VERSION)"
+version: ## display current version
+	@echo "version: $(APP_VERSION)"
 
 
 ## -- Conda targets ------------------------------------------------------------------------------------------------- ##
 
-.PHONY: install-conda
-install-conda: ## Install conda on your local machine
-	@$(CONDA_TOOL) --version; \
+.PHONY: conda-install
+conda-install: ## Install conda on your local machine
+	@echo "Looking for [$(CONDA_TOOL)]..."; \
+	$(CONDA_TOOL) --version; \
 	if [ $$? != "0" ]; then \
 		echo " "; \
 		echo "Your defined Conda tool [$(CONDA_TOOL)] has not been found."; \
@@ -96,8 +95,8 @@ install-conda: ## Install conda on your local machine
 				echo "Fetching and installing miniconda"; \
 				echo " "; \
 				wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh; \
-    			bash ~/miniconda.sh -b -p $HOME/.conda; \
-    			export PATH=$HOME/.conda/bin:$PATH; \
+    			bash ~/miniconda.sh -b -p ${HOME}/.conda; \
+    			export PATH=${HOME}/.conda/bin:$PATH; \
     			conda init; \
 				/usr/bin/rm ~/miniconda.sh; \
 				;; \
@@ -110,29 +109,76 @@ install-conda: ## Install conda on your local machine
 		echo "Conda tool [$(CONDA_TOOL)] has been found, skipping installation"; \
 	fi;
 
-.PHONY: create-conda-env
-create-env: install-conda ## Create a local conda environment based on `environment.yml`
-	$(CONDA_TOOL) env create -f environment.yml
-	@echo ""
-	@echo "#####################################################################"
-	@echo "#                                                                   #"
-	@echo "# Please activate your new environment using the following command: #"
-	@echo "#                                                                   #"
-	@echo "#####################################################################"
-	@echo ""
-	@echo "$(CONDA_TOOL) activate $(CONDA_ENVIRONMENT)"
-	@echo ""
-	@echo ""
+.PHONY: conda-create-env
+conda-create-env: conda-install ## Create a local Conda environment based on `environment.yml` file
+	@$(CONDA_TOOL) env create -y -f environment.yml
 
-## -- Install targets ----------------------------------------------------------------------------------------------- ##
+.PHONY: conda-clean-env
+conda-clean-env: ## Completely removes local project's Conda environment
+	$(CONDA_TOOL) env remove -n $(CONDA_ENVIRONMENT)
 
-.PHONY: install-poetry
-install-poetry: ## Install Poetry in the active environment (Also gets installed with other install targets)
+## -- Poetry targets ------------------------------------------------------------------------------------------------ ##
+
+.PHONY: poetry-install
+poetry-install: ## Install Poetry in activated Conda environment, or with pipx if Conda not found
 	@poetry --version; \
-	if [ $$? != "0" ]; then \
-		echo "Poetry not found, proceeding to install Poetry..."; \
-		pip install poetry==1.8.2; \
-	fi;
+    	if [ $$? != "0" ]; then \
+			echo "Poetry not found, proceeding to install Poetry..."; \
+			echo "Looking for [$(CONDA_TOOL)]...";\
+			$(CONDA_TOOL) --version; \
+            if [ $$? != "0" ]; then \
+				echo "$(CONDA_TOOL) not found, trying with pipx"; \
+				pipx --version; \
+				if [ $$? != "0" ]; then \
+					echo "pipx not found; installing pipx"; \
+					pip install --user pipx; \
+					pipx ensurepath; \
+				fi; \
+					pipx install poetry==$(POETRY_VERSION); \
+				else \
+					echo "Installing poetry with Conda"; \
+					$(CONDA_TOOL) install -y poetry==$(POETRY_VERSION); \
+				fi; \
+		fi;
+
+.PHONY: poetry-install-conda
+poetry-install-conda: ## Install Poetry in currently active Conda environment. Will fail in Conda is not found
+	@poetry --version; \
+    	if [ $$? != "0" ]; then \
+			echo "Poetry not found, proceeding to install Poetry..."; \
+			echo "Looking for [$(CONDA_TOOL)]...";\
+			$(CONDA_TOOL) --version; \
+			if [ $$? != "0" ]; then \
+				echo "$(CONDA_TOOL) not found; Poetry will not be installed"; \
+			else \
+				echo "Installing Poetry with Conda in currently active environment"; \
+				$(CONDA_TOOL) install -y poetry==$(POETRY_VERSION); \
+			fi; \
+		fi;
+
+.PHONY: poetry-install-pipx
+poetry-install-pipx: ## Install Poetry using pipx. Will also install pipx if not present on system
+	@poetry --version; \
+    	if [ $$? != "0" ]; then \
+			pipx --version; \
+			if [ $$? != "0" ]; then \
+				echo "pipx not found; installing pipx"; \
+				pip install --user pipx; \
+				pipx ensurepath; \
+			fi; \
+				pipx install poetry==$(POETRY_VERSION); \
+		fi;
+
+.PHONY: poetry-uninstall-conda
+poetry-uninstall-conda: ## Uninstall Poetry located in currently active Conda environment
+	$(CONDA_TOOL) remove poetry
+
+.PHONY: uninstall-poetry-pipx
+poetry-uninstall-pipx: ## Uninstall pipx-installed Poetry and pipx
+	@pipx uninstall poetry
+	@pip uninstall pipx
+
+## -- Install targets (All install targets will try to install Poetry using `make poetry-install`)------------------- ##
 
 .PHONY: install
 install: install-precommit ## Install the application package, developer dependencies and pre-commit hook
@@ -147,16 +193,16 @@ install-precommit: install-dev## Install the pre-commit hooks (also installs dev
 	fi;
 
 .PHONY: install-dev
-install-dev: install-poetry ## Install the application along with developer dependencies
+install-dev: poetry-install ## Install the application along with developer dependencies
 	@poetry install --with dev
 
 .PHONY: install-with-lab
-install-with-lab: install-poetry ## Install the application and it's dependencies, including Jupyter Lab
+install-with-lab: poetry-install ## Install the application and it's dependencies, including Jupyter Lab
 	@poetry install --with lab
 
 
 .PHONY: install-package
-install-package: install-poetry ## Install the application package only
+install-package: poetry-install ## Install the application package only
 	@poetry install
 
 ## -- Versionning targets ------------------------------------------------------------------------------------------- ##
