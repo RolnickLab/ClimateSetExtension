@@ -1,2 +1,5 @@
+# This file is for custom makefile variable at the project level.
+# They are meant to be share by the whole project team.
+
 APPLICATION_NAME := climateset
 CONDA_ENVIRONMENT := climateset
