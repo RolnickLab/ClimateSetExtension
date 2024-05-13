@@ -114,8 +114,14 @@ conda-create-env: conda-install ## Create a local Conda environment based on `en
 	@$(CONDA_TOOL) env create -y -f environment.yml
 
 .PHONY: conda-env-info
-conda-env-info: ## Print information about Conda environment using <CONDA_TOOL>
+conda-env-info: ## Print information about active Conda environment using <CONDA_TOOL>
 	@$(CONDA_TOOL) info
+
+.PHONY: _conda-poetry-install
+_conda-poetry-install:
+	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) install -y poetry==$(POETRY_VERSION); \
+
+
 
 .PHONY:conda-poetry-install
 conda-poetry-install: ## Install Poetry in currently active Conda environment. Will fail if Conda is not found
@@ -128,13 +134,13 @@ conda-poetry-install: ## Install Poetry in currently active Conda environment. W
 				echo "$(CONDA_TOOL) not found; Poetry will not be installed"; \
 			else \
 				echo "Installing Poetry with Conda in currently active environment"; \
-				$(CONDA_TOOL) install -y poetry==$(POETRY_VERSION); \
+				make -s _conda-poetry-install; \
 			fi; \
 		fi;
 
 .PHONY: conda-poetry-uninstall
 conda-poetry-uninstall: ## Uninstall Poetry located in currently active Conda environment
-	$(CONDA_TOOL) remove poetry
+	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) remove poetry
 
 .PHONY: conda-clean-env
 conda-clean-env: ## Completely removes local project's Conda environment
@@ -160,7 +166,7 @@ poetry-install-auto: ## Install Poetry in activated Conda environment, or with p
 					pipx install poetry==$(POETRY_VERSION); \
 				else \
 					echo "Installing poetry with Conda"; \
-					$(CONDA_TOOL) install -y poetry==$(POETRY_VERSION); \
+					make -s _conda-poetry-install; \
 				fi; \
 		fi;
 
@@ -186,7 +192,7 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
 					fi; \
 						echo "Installing Poetry"; \
 						pipx install poetry==$(POETRY_VERSION); \
-						make poetry-create-env; \
+						make -s poetry-create-env; \
 					;; \
 				*) \
 					echo "Skipping installation."; \
