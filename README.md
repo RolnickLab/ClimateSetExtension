@@ -8,11 +8,18 @@ some basic tools for development are already installed.
 The project uses a Makefile to automate most operations. If make is available on your 
 machine there's a good chance this will work.
 
-Please consult the [Makefile](Makefile) before trying to use it.
+The following Makefile files should not be modified, but can be consulted:
+
+* [Makefile](Makefile) : Orchestration of the different files
+* [base.make](.make/base.make) : Shared utilities, project agnostic.
+
+The following Makefile files are project or user specific:
+
+* [Makefile.variables](Makefile.variables) : Shared project variables.
+* [Makefile.targets](Makefile.targets) : Shared project targets.
+* [Makefile.private](Makefile.private.example) : User specific variables and targets.
 
 ## Basic Information
-
-Much of this repository is organized through the Makefile.
 
 The different targets and their description can be examined by executing the command
 `make targets`
@@ -21,17 +28,17 @@ The different targets and their description can be examined by executing the com
 
 ## Installation
 
-This project assumes environment management will be done with `Conda` or directly with
-`Poetry`. It would, however, be possible to manage the environment with, for example, 
-pyenv or virtualenv.
-
-Those specific use cases are not specifically supported by the Makefile and require
-users to set up their own environments beforehand.
-
-For detailed information about `Poetry` and `Conda`:
+This project assumes environment management will be done with `Conda` or directly through
+`Poetry`. 
 
 * [Poetry](https://python-poetry.org/docs/basic-usage/)
 * [Conda](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html)
+
+While it is possible to manage the environment with, for example, pyenv or virtualenv, 
+those specific use cases are not supported by the Makefile and require users to set up 
+their own environments beforehand.
+
+For detailed information about `Poetry` and `Conda`:
 
 If you want to use something else than `Conda` or `Poetry` to manage environment isolation, 
 it is recommended to follow 
@@ -140,6 +147,52 @@ make install
 To install only the package, without development tools:
 ```
 make install-package
+```
+
+## First time user quick setup
+
+### Conda
+The easiest and quickest way to get up and running with Conda.
+
+Create Conda environment (will check for Conda and install it if not found):
+
+```
+make conda-create-env
+```
+
+Activate Conda environment (substitute with your <CONDA_TOOL> if something else 
+than `conda`:
+
+```
+conda activate climateset
+```
+
+Install package:
+
+```
+make install
+```
+
+### Poetry
+
+The easiest and quickest way to get up and running with Poetry.
+
+Install pipx and Poetry and activate project environment :
+
+```
+make poetry-install
+```
+
+**Or, if Poetry is already available:**
+
+```
+make poetry-create-env
+```
+
+Install package:
+
+```
+make install
 ```
 
 ## Basic automations
