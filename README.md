@@ -5,8 +5,8 @@
 This project has only been tested in a Linux (Debian based) environment and assumes
 some basic tools for development are already installed.
 
-The project uses a Makefile to automate most operations. If you can run make on your 
-machine there's a good chance this will work on your machine.
+The project uses a Makefile to automate most operations. If make is available on your 
+machine there's a good chance this will work.
 
 Please consult the [Makefile](Makefile) before trying to use it.
 
@@ -17,32 +17,120 @@ Much of this repository is organized through the Makefile.
 The different targets and their description can be examined by executing the command
 `make targets`
 
-![](images/make_targets.png)
+![](img/make_targets.png)
 
 ## Installation
 
-This project assumes environment management will be done with Conda. It would, however,
-be possible to create you own environment with, for example, poetry, pyenv or virtualenv.
+This project assumes environment management will be done with `Conda` or directly with
+`Poetry`. It would, however, be possible to manage the environment with, for example, 
+pyenv or virtualenv.
 
-**Do note that this project is configured to use [Poetry](https://python-poetry.org/)
-and as such, this tool is required to install it.**
+Those specific use cases are not specifically supported by the Makefile and require
+users to set up their own environments beforehand.
 
-Poetry is not included in the [environment.yml](environment.yml), due to some problems
+For detailed information about `Poetry` and `Conda`:
+
+* [Poetry](https://python-poetry.org/docs/basic-usage/)
+* [Conda](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html)
+
+If you want to use something else than `Conda` or `Poetry` to manage environment isolation, 
+it is recommended to follow 
+[Poetry's guidelines on managing environments](https://python-poetry.org/docs/managing-environments/)
+
+Poetry is not included in the [environment.yml](environment.yml), due to some possible problems
 in compute cluster environments, but will be installed automatically if needed
 by most `install` targets.
 
+Currently, the project runs on Python version 3.10.
+
+### Environment management choices
+
+Environment management can become quite complicated. Using Conda allows a certain
+ease of management since the Poetry installation is contained inside the created Conda 
+environment.
+
+However, some computing environments do not permit the use of Conda (like certain SLURM
+clusters). This is why the `pipx` option for Poetry is also enabled in this project.
+
+**Unless you really know what you are doing, it is not recommended to install Poetry
+as a standalone tool (with pipx) while also using Conda environments.**
+
+### Conda targets
+
 If you need or want to install Conda:
 ```
-make install-conda 
+make conda-install 
 ```
 
 To create the conda environment:
 ```
-make create-env
+make conda-create-env
 ```
 
-After you have created your Conda environment, or you want to manage your environment 
-yourself, make sure to activate it properly before installing this package.
+To remove the conda environment:
+```
+make conda-clean-env
+```
+
+Make sure to activate the configured environment before installing this package.
+
+### Poetry targets
+
+There are 2 possibilities available in how to manage `Poetry` if it is not already
+configured on your system.
+
+**It is not recommended to install `Poetry` in the same environment that will be managed
+by `Poetry`; It should be installed by `Conda` (as in, `conda install poetry`) or 
+on the system using `pipx`, in order to minimize dependency conflicts.**
+
+The following target will first try to install `Poetry` in the active `Conda` 
+environment; if it can't find `Conda`, it will proceed to install via `pipx`
+
+```
+make poetry-install-auto
+```
+
+To install `Poetry` using `Conda`:
+
+```
+make conda-poetry-install
+```
+
+Using `pipx` will instead allow environment management directly with `Poetry`. The
+following target will also make `Poetry` use a Python 3.10 environment for this
+project.
+
+```
+make poetry-install-pipx
+```
+
+This will also create a virtual environment managed by `Poetry`.
+
+A standalone environment can also be created later using the `make poetry-create-env`
+command, and removed with the `make poetry-remove-env` command.
+
+Information about the currently active environment used by Poetry, 
+whether Conda or Poetry, can be seen using the `make poetry-env-info` command.
+
+Both install methods can also be cleaned up:
+
+```
+make conda-poetry-uninstall
+# or
+make poetry-uninstall-pipx
+```
+
+**Important note!**
+
+If you have an active `Conda` environment  and install `Poetry` using `pipx`,
+you will have to use `poetry run python <your_command_or_script_path>` instead of 
+`python <your_command_or_script_path>`, (which is normal when using Poetry) as 
+`python` will use Conda's active environment.
+
+### Install targets
+
+**All `install` targets will first check if `Poetry` is available and try to install
+it with the `make poetry-install-auto` target.**
 
 To install the package, development dependencies and CLI tools (if available):
 ```
@@ -76,10 +164,6 @@ To run tests:
 make test
 ```
 
-To run all tests, including the integration test:
-```
-make test-all
-```
 
 ## Data
 
