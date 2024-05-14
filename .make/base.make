@@ -133,7 +133,7 @@ conda-poetry-install: ## Install Poetry in currently active Conda environment. W
 			if [ $$? != "0" ]; then \
 				echo "$(CONDA_TOOL) not found; Poetry will not be installed"; \
 			else \
-				echo "Installing Poetry with Conda in currently active environment"; \
+				echo "Installing Poetry with Conda in [$(CONDA_ENVIRONMENT)] environment"; \
 				make -s _conda-poetry-install; \
 			fi; \
 		fi;
