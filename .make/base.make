@@ -316,11 +316,11 @@ bump-major: ## Bump application major version  <X.0.0>
 	$(BUMP_TOOL) $(BUMP_ARGS) bump major
 
 .PHONY: bump-minor
-bump-minor: ## Bump application major version  <0.X.0>
+bump-minor: ## Bump application minor version  <0.X.0>
 	$(BUMP_TOOL) $(BUMP_ARGS) bump minor
 
 .PHONY: bump-patch
-bump-patch: ## Bump application major version  <0.0.X>
+bump-patch: ## Bump application patch version  <0.0.X>
 	$(BUMP_TOOL) $(BUMP_ARGS) bump patch
 
 ## -- Docker targets ------------------------------------------------------------------------------------------------ ##
