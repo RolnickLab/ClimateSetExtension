@@ -111,7 +111,7 @@ conda-install: ## Install Conda on your local machine
 
 .PHONY: conda-create-env
 conda-create-env: conda-install ## Create a local Conda environment based on `environment.yml` file
-	@$(CONDA_TOOL) env create -y -f environment.yml
+	@$(CONDA_TOOL) env create -f environment.yml
 
 .PHONY: conda-env-info
 conda-env-info: ## Print information about active Conda environment using <CONDA_TOOL>
@@ -119,7 +119,7 @@ conda-env-info: ## Print information about active Conda environment using <CONDA
 
 .PHONY: _conda-poetry-install
 _conda-poetry-install:
-	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) install -y poetry==$(POETRY_VERSION); \
+	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) install -c conda-forge poetry==$(POETRY_VERSION); \
 
 
 
