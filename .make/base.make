@@ -16,7 +16,6 @@ SHELL := /usr/bin/env bash
 BUMP_TOOL := bump-my-version
 APP_VERSION := 0.0.0
 DOCKER_COMPOSE ?= docker compose
-POETRY_VERSION := 1.8.2
 AUTO_INSTALL ?=
 
 # Conda variables
@@ -163,7 +162,7 @@ poetry-install-auto: ## Install Poetry in activated Conda environment, or with p
 					pip install --user pipx; \
 					pipx ensurepath; \
 				fi; \
-					pipx install poetry==$(POETRY_VERSION); \
+					pipx install poetry; \
 				else \
 					echo "Installing poetry with Conda"; \
 					make -s _conda-poetry-install; \
@@ -178,8 +177,21 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
     	  	if [ "$(AUTO_INSTALL)" = "true" ]; then \
 				ans="y";\
 			else \
-    	  		echo""; \
-    	  		echo -n "Would you like to install Poetry using pipx? (This will also install pipx if needed) [y/N]: "; \
+			  	pipx --version; \
+					if [ $$? != "0" ]; then \
+						echo""; \
+						echo -e "\e[1;39;41m-- WARNING --\e[0m The following pip has been found and will be used to install pipx: "; \
+						echo "    -> "$$(which pip); \
+						echo""; \
+						echo "If you do not have write permission to that environment, you will need to either activate"; \
+						echo "a different environment, or create a virtual one (ex. venv) to install pipx into it."; \
+						echo "See documentation for more information."; \
+						echo""; \
+    	  				echo -n "Would you like to install pipx and Poetry? [y/N]: "; \
+					else \
+					  	echo""; \
+    	  			  	echo -n "Would you like to install Poetry using pipx? [y/N]: "; \
+					fi; \
 				read ans; \
 			fi; \
 			case $$ans in \
@@ -191,7 +203,7 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
 						pipx ensurepath; \
 					fi; \
 						echo "Installing Poetry"; \
-						pipx install poetry==$(POETRY_VERSION); \
+						pipx install poetry; \
 						make -s poetry-create-env; \
 					;; \
 				*) \
@@ -254,9 +266,27 @@ poetry-remove-env: ## Remove current project's Poetry managed environment.
 		esac; \
 	fi; \
 
+.PHONY: poetry-uninstall
+poetry-uninstall: poetry-remove-env ## Uninstall pipx-installed Poetry and the created environment
+	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
+		ans="y";\
+	else \
+		echo""; \
+		echo -n "Would you like to uninstall pipx-installed Poetry? [y/N]: "; \
+		read ans; \
+	fi; \
+	case $$ans in \
+		[Yy]*) \
+			pipx uninstall poetry; \
+			;; \
+		*) \
+			echo "Skipping uninstallation."; \
+			echo " "; \
+			;; \
+	esac; \
 
 .PHONY: poetry-uninstall-pipx
-poetry-uninstall-pipx: poetry-remove-env ## Uninstall pipx-installed Poetry, the created env and pipx
+poetry-uninstall-pipx: poetry-remove-env ## Uninstall pipx-installed Poetry, the created environment and pipx
 	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
 		ans="y";\
 	else \
@@ -302,7 +332,7 @@ install-with-lab: poetry-install-auto ## Install the application and it's dev de
 install-package: poetry-install-auto ## Install the application package only
 	@poetry install
 
-## -- Versioning targets ------------------------------------------------------------------------------------------- ##
+## -- Versioning targets -------------------------------------------------------------------------------------------- ##
 
 # Use the "dry" target for a dry-run version bump, ex.
 # make bump-major dry

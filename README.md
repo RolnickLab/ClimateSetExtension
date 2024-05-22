@@ -24,6 +24,8 @@ The following Makefile files are project or user specific:
 The different targets and their description can be examined by executing the command
 `make targets`
 
+Ex.
+
 ![](img/make_targets.png)
 
 ## Installation
@@ -62,6 +64,39 @@ clusters). This is why the `pipx` option for Poetry is also enabled in this proj
 **Unless you really know what you are doing, it is not recommended to install Poetry
 as a standalone tool (with pipx) while also using Conda environments.**
 
+There are 2 recommended ways to manage `Poetry` if it is not already configured on 
+your system. Using `Conda`, or installing `Poetry` as a standalone tool using `pipx`
+
+It is not recommended to install `Poetry` in the same environment that will be managed
+by `Poetry` in order to minimize dependency conflicts.
+
+#### Pipx particularities
+
+**WARNING** : If you want to install `Poetry` using `pipx`, and pipx is not already 
+installed on your system, it will be installed using `pip`. 
+
+Write access to that environment is required (use `which pip` to learn which 
+environment is active if not sure).
+
+Particularly on remote compute clusters (SLURM), default system `pip` will probably not 
+be writable by users. One way around it is to create a generic virtual environment 
+using `venv` like so (preferably in your $HOME):
+
+```
+python -m venv $HOME/.venv
+source $HOME/.venv/bin/activate
+pip install pipx
+pipx ensurepath
+pipx install poetry
+```
+
+This virtual environment can be deactivated afterward, as Poetry will still be 
+available to the user.
+
+```
+deactivate
+```
+
 ### Conda targets
 
 If you need or want to install Conda:
@@ -79,16 +114,22 @@ To remove the conda environment:
 make conda-clean-env
 ```
 
-Make sure to activate the configured environment before installing this package.
+To install `Poetry` using `Conda` (after conda environment as been created:
+
+```
+make conda-poetry-install
+```
+
+To remove poetry from the Conda environment:
+
+```
+make conda-poetry-uninstall
+```
+
+Make sure to activate the conda environment before moving on the 
+[install targets](#install-targets).
 
 ### Poetry targets
-
-There are 2 possibilities available in how to manage `Poetry` if it is not already
-configured on your system.
-
-**It is not recommended to install `Poetry` in the same environment that will be managed
-by `Poetry`; It should be installed by `Conda` (as in, `conda install poetry`) or 
-on the system using `pipx`, in order to minimize dependency conflicts.**
 
 The following target will first try to install `Poetry` in the active `Conda` 
 environment; if it can't find `Conda`, it will proceed to install via `pipx`
@@ -97,33 +138,45 @@ environment; if it can't find `Conda`, it will proceed to install via `pipx`
 make poetry-install-auto
 ```
 
-To install `Poetry` using `Conda`:
+The following target will allow environment management directly with a standalone 
+`Poetry` installation through `pipx`. It will also create a virtual environment managed 
+by `Poetry` that uses Python 3.10.
 
 ```
-make conda-poetry-install
+make poetry-install
 ```
 
-Using `pipx` will instead allow environment management directly with `Poetry`. The
-following target will also make `Poetry` use a Python 3.10 environment for this
-project.
+If you already have Poetry installed and configured, or want to recreate it later, 
+an environment for the project can also be created using:
 
 ```
-make poetry-install-pipx
+make poetry-create-env
 ```
 
-This will also create a virtual environment managed by `Poetry`.
-
-A standalone environment can also be created later using the `make poetry-create-env`
-command, and removed with the `make poetry-remove-env` command.
-
-Information about the currently active environment used by Poetry, 
-whether Conda or Poetry, can be seen using the `make poetry-env-info` command.
-
-Both install methods can also be cleaned up:
+and removed using: 
 
 ```
-make conda-poetry-uninstall
-# or
+make poetry-remove-env
+```
+
+Information about the currently active environment used by `Poetry`, 
+whether `Conda` or `Poetry`, can be seen using:
+
+```
+make poetry-env-info
+```
+
+To remove `Poetry` that was installed with `pipx` (be sure to execute this command in 
+the environment where pipx is installed):
+
+```
+make poetry-uninstall
+```
+
+To uninstall both `Poetry` and `pipx` (again, be sure to execute this command in 
+the environment where pipx is installed):
+
+```
 make poetry-uninstall-pipx
 ```
 
@@ -132,7 +185,8 @@ make poetry-uninstall-pipx
 If you have an active `Conda` environment  and install `Poetry` using `pipx`,
 you will have to use `poetry run python <your_command_or_script_path>` instead of 
 `python <your_command_or_script_path>`, (which is normal when using Poetry) as 
-`python` will use Conda's active environment.
+Conda's active environment will define the available default `python` executable.
+
 
 ### Install targets
 
