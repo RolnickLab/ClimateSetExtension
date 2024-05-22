@@ -80,8 +80,10 @@ environment is active if not sure).
 
 Particularly on remote compute clusters (SLURM), default system `pip` will probably not 
 be writable by users. One way around it is to create a generic virtual environment 
-using `venv` like so (preferably in your $HOME):
+using `venv` like so (preferably in your $HOME). It can be done manually using the 
+following commands:
 
+Ex.
 ```
 python -m venv $HOME/.venv
 source $HOME/.venv/bin/activate
@@ -96,6 +98,8 @@ available to the user.
 ```
 deactivate
 ```
+
+There are also targets in the [Poetry section](#poetry-targets) that handle this use case.
 
 ### Conda targets
 
@@ -146,6 +150,12 @@ by `Poetry` that uses Python 3.10.
 make poetry-install
 ```
 
+If the compute environment requires `pipx` to be installed in a virtual environment:
+
+```
+make poetry-install-venv
+```
+
 If you already have Poetry installed and configured, or want to recreate it later, 
 an environment for the project can also be created using:
 
@@ -177,7 +187,14 @@ To uninstall both `Poetry` and `pipx` (again, be sure to execute this command in
 the environment where pipx is installed):
 
 ```
-make poetry-uninstall-pipx
+make poetry-uninstall
+```
+
+If `Poetry` and `pipx` were installed using the `make poetry-install-venv`, they can be 
+removed, including the virtual environment, using:
+
+```
+make poetry-uninstall-venv
 ```
 
 **Important note!**
