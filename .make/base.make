@@ -199,7 +199,7 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
 					pipx --version; \
 					if [ $$? != "0" ]; then \
 						echo "pipx not found; installing pipx"; \
-						pip install --user pipx; \
+						pip install --user pipx || pip install pipx; \
 						pipx ensurepath; \
 					fi; \
 						echo "Installing Poetry"; \
@@ -212,6 +212,13 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
 					;; \
 			esac; \
 		fi;
+
+.PHONY: poetry-install-venv
+poetry-install-venv: ## Install standalone Poetry and Poetry environment. Will install pipx in $HOME/.pipx_venv
+	python3 -m venv $$HOME/.pipx_venv
+	@source $$HOME/.pipx_venv/bin/activate
+	@pip3 install pipx
+	make -s poetry-install
 
 .PHONY: poetry-env-info
 poetry-env-info: ## Information about the currently active environment used by Poetry
@@ -286,7 +293,7 @@ poetry-uninstall: poetry-remove-env ## Uninstall pipx-installed Poetry and the c
 	esac; \
 
 .PHONY: poetry-uninstall-pipx
-poetry-uninstall-pipx: poetry-remove-env ## Uninstall pipx-installed Poetry, the created environment and pipx
+poetry-uninstall-pipx: poetry-remove-env ## Uninstall pipx-installed Poetry, the created Poetry environment and pipx
 	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
 		ans="y";\
 	else \
@@ -302,6 +309,28 @@ poetry-uninstall-pipx: poetry-remove-env ## Uninstall pipx-installed Poetry, the
 		*) \
 			echo "Skipping uninstallation."; \
 			echo " "; \
+			;; \
+	esac; \
+
+.PHONY: poetry-uninstall-venv
+poetry-uninstall-venv: ## Uninstall pipx-installed Poetry, the created Poetry environment, pipx and $HOME/.pipx_venv
+	python3 -m venv $$HOME/.pipx_venv
+	@source $$HOME/.pipx_venv/bin/activate
+	make -s poetry-uninstall-pipx
+	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
+		ans="y";\
+	else \
+		echo""; \
+		echo -n "Would you like to remove the virtual environment located here : [$$HOME/.pipx_venv] ? [y/N]: "; \
+		read ans; \
+	fi; \
+	case $$ans in \
+		[Yy]*) \
+			rm -r $$HOME/.pipx_venv; \
+			;; \
+		*) \
+			echo "Skipping [$$HOME/.pipx_venv] virtual environment removal."; \
+			echo ""; \
 			;; \
 	esac; \
 
