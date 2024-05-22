@@ -1,9 +1,6 @@
 # ClimatesetExtension
 
-## Requirements
-
-This project has only been tested in a Linux (Debian based) environment and assumes
-some basic tools for development are already installed.
+## Tools and Makefile structure
 
 The project uses a Makefile to automate most operations. If make is available on your 
 machine there's a good chance this will work.
@@ -19,7 +16,7 @@ The following Makefile files are project or user specific:
 * [Makefile.targets](Makefile.targets) : Shared project targets.
 * [Makefile.private](Makefile.private.example) : User specific variables and targets.
 
-## Basic Information
+### Basic Information
 
 The different targets and their description can be examined by executing the command
 `make targets`
@@ -28,7 +25,12 @@ Ex.
 
 ![](img/make_targets.png)
 
-## Installation
+## Requirements
+
+This project has only been tested in a Linux (Debian based) environment and assumes
+some basic tools for development are already installed.
+
+It also requires that minimally `Python`, `pip` and `venv` are available on your system.
 
 This project assumes environment management will be done with `Conda` or directly through
 `Poetry`. 
@@ -52,7 +54,7 @@ by most `install` targets.
 
 Currently, the project runs on Python version 3.10.
 
-### Environment management choices
+## Environment management choices
 
 Environment management can become quite complicated. Using Conda allows a certain
 ease of management since the Poetry installation is contained inside the created Conda 
@@ -70,17 +72,17 @@ your system. Using `Conda`, or installing `Poetry` as a standalone tool using `p
 It is not recommended to install `Poetry` in the same environment that will be managed
 by `Poetry` in order to minimize dependency conflicts.
 
-#### Pipx particularities
+### Note about Pipx installation 
 
-**WARNING** : If you want to install `Poetry` using `pipx`, and pipx is not already 
+If you want to install `Poetry` using `pipx`, and pipx is not already 
 installed on your system, it will be installed using `pip`. 
 
 Write access to that environment is required (use `which pip` to learn which 
 environment is active if not sure).
 
 Particularly on remote compute clusters (SLURM), default system `pip` will probably not 
-be writable by users. One way around it is to create a generic virtual environment 
-using `venv` like so (preferably in your $HOME). It can be done manually using the 
+allow users to install packages. One way around it is to create a generic virtual 
+environment using `venv` like so (preferably in your $HOME). It can be done manually using the 
 following commands:
 
 Ex.
@@ -90,18 +92,15 @@ source $HOME/.venv/bin/activate
 pip install pipx
 pipx ensurepath
 pipx install poetry
+deactivate
 ```
 
 This virtual environment can be deactivated afterward, as Poetry will still be 
 available to the user.
 
-```
-deactivate
-```
+There are also targets in the [Poetry section](#using-poetry) that handle this use case.
 
-There are also targets in the [Poetry section](#poetry-targets) that handle this use case.
-
-### Conda targets
+## Using Conda
 
 If you need or want to install Conda:
 ```
@@ -133,7 +132,7 @@ make conda-poetry-uninstall
 Make sure to activate the conda environment before moving on the 
 [install targets](#install-targets).
 
-### Poetry targets
+## Using Poetry
 
 The following target will first try to install `Poetry` in the active `Conda` 
 environment; if it can't find `Conda`, it will proceed to install via `pipx`
@@ -205,7 +204,7 @@ you will have to use `poetry run python <your_command_or_script_path>` instead o
 Conda's active environment will define the available default `python` executable.
 
 
-### Install targets
+## Installing the python package and it's dependencies
 
 **All `install` targets will first check if `Poetry` is available and try to install
 it with the `make poetry-install-auto` target.**
@@ -251,10 +250,11 @@ The easiest and quickest way to get up and running with Poetry.
 Install pipx and Poetry and activate project environment :
 
 ```
-make poetry-install
+make poetry-install 
 ```
+_can be replaced by `make poetry-install-venv` if needed_
 
-**Or, if Poetry is already available:**
+If Poetry is already available, the environment can be created using:
 
 ```
 make poetry-create-env

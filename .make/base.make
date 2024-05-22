@@ -177,6 +177,7 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
     	  	if [ "$(AUTO_INSTALL)" = "true" ]; then \
 				ans="y";\
 			else \
+			  	echo "Looking for pipx version...";\
 			  	pipx --version; \
 					if [ $$? != "0" ]; then \
 						echo""; \
@@ -186,6 +187,8 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
 						echo "If you do not have write permission to that environment, you will need to either activate"; \
 						echo "a different environment, or create a virtual one (ex. venv) to install pipx into it."; \
 						echo "See documentation for more information."; \
+						echo""; \
+						echo "Alternatively, the [make poetry-install-venv] target can also be used"; \
 						echo""; \
     	  				echo -n "Would you like to install pipx and Poetry? [y/N]: "; \
 					else \
@@ -215,10 +218,12 @@ poetry-install: ## Install standalone Poetry using pipx and create Poetry env. W
 
 .PHONY: poetry-install-venv
 poetry-install-venv: ## Install standalone Poetry and Poetry environment. Will install pipx in $HOME/.pipx_venv
-	python3 -m venv $$HOME/.pipx_venv
+	@echo "Creating virtual environment using venv here : [$$HOME/.pipx_venv]"
+	@python3 -m venv $$HOME/.pipx_venv
+	@echo "Activating virtual environment [$$HOME/.pipx_venv]"
 	@source $$HOME/.pipx_venv/bin/activate
 	@pip3 install pipx
-	make -s poetry-install
+	@make -s poetry-install
 
 .PHONY: poetry-env-info
 poetry-env-info: ## Information about the currently active environment used by Poetry
@@ -314,9 +319,9 @@ poetry-uninstall-pipx: poetry-remove-env ## Uninstall pipx-installed Poetry, the
 
 .PHONY: poetry-uninstall-venv
 poetry-uninstall-venv: ## Uninstall pipx-installed Poetry, the created Poetry environment, pipx and $HOME/.pipx_venv
-	python3 -m venv $$HOME/.pipx_venv
+	@python3 -m venv $$HOME/.pipx_venv
 	@source $$HOME/.pipx_venv/bin/activate
-	make -s poetry-uninstall-pipx
+	@make -s poetry-uninstall-pipx
 	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
 		ans="y";\
 	else \
