@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# This script can be configured with paths exclusive to your own development environment
+# and then sourced in other scripts, so that many people can use the same scripts
+# in different environments.
+#
+# With this, we want to avoid relative paths (as they can change/break easily)
+# and hard-coded paths in the code itself. A repository is installed in a
+# different path for each person in a given project. We want people to be able
+# to use the same scripts instead of replicating them with personalized hard-coded paths
+#
+# For example:
+#
+# - config.sh
+#   #!/usr/bin/env bash
+#
+#   export PROJECT_DIR="<FULL_PATH_TO_YOUR_PROJECT_DIR>"
+#
+# - some-script.sh
+#   #!/usr/bin/env bash
+#
+#   module load miniconda/3
+#   conda activate <PROJECT_ENVIRONMENT>
+#
+#   source config.sh
+#
+#   cd "$PROJECT_DIR" || exit
+#
+#   params_file="${PROJECT_DIR}/RELEVANT/PATH/TO/SOMEWHERE/FILE.yml"
+#
+#   python3 some_script.py params_file
+
+
+export PROJECT_DIR="<FULL_PATH_TO_YOUR_PROJECT_DIR>"
