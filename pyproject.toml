@@ -5,6 +5,12 @@ description = ""
 authors = ["f-PLT <fplt.softwaredeveloper@gmail.com>"]
 readme = "README.md"
 
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.lab]
+optional = true
+
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
 numpy = "^1.26.4"
@@ -12,9 +18,9 @@ netcdf4 = "^1.6.5"
 xmip = "^0.7.2"
 tqdm = "^4.66.4"
 pint = "^0.23"
-
-[tool.poetry.group.dev]
-optional = true
+xesmf = "^0.8.5"
+esgf-pyclient = "^0.3.1"
+xarray = "^2024.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"
@@ -27,9 +33,6 @@ flynt = "^1.0.1"
 flake8 = "^7.0.0"
 pre-commit = "^3.7.0"
 flake8-pyproject = "^1.2.3"
-
-[tool.poetry.group.lab]
-optional = true
 
 [tool.poetry.group.lab.dependencies]
 jupyterlab = "^4.0.10"

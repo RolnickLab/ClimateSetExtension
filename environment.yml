@@ -5,7 +5,3 @@ dependencies:
   - python=3.11
   - cdo
   - nco
-  - xesmf
-  - esgf-pyclient
-  - xarray
-
