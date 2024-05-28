@@ -2,5 +2,10 @@ name: climateset
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.11
+  - cdo
+  - nco
+  - xesmf
+  - esgf-pyclient
+  - xarray
 
