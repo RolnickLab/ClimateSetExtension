@@ -19,13 +19,15 @@ xmip = "^0.7.2"
 tqdm = "^4.66.4"
 pint = "^0.23"
 xesmf = "^0.8.5"
-esgf-pyclient = "^0.3.1"
 xarray = "^2024.5.0"
+esgf-pyclient = "^0.3.1"
+
+[tool.poetry.group.secondary.dependencies]
+jinja2 = ">=3.1.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"
 pylint = "^3.0.3"
-black = "^23.12.1"
 isort = "^5.13.2"
 bump-my-version = "^0.16.2"
 tox = "^4.12.0"
@@ -33,6 +35,7 @@ flynt = "^1.0.1"
 flake8 = "^7.0.0"
 pre-commit = "^3.7.0"
 flake8-pyproject = "^1.2.3"
+black = "^24.4.2"
 
 [tool.poetry.group.lab.dependencies]
 jupyterlab = "^4.0.10"
