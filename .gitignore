@@ -166,7 +166,9 @@ cython_debug/
 data/*
 !data/README.md
 **/*.nc
+#!config/output_rolemodel/*.nc
 **/*.tif
+
 
 # Makefile and configurations
 Makefile.private
