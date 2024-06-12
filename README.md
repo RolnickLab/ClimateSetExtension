@@ -305,7 +305,7 @@ See [Contributing guidelines](CONTRIBUTING.md)
 
 
 ### Configurations
-Configurations are in the [config/](config) folder.
+Configurations are in the [config/](configs) folder.
 
 
 ### Tests

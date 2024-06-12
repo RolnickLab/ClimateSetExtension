@@ -5,14 +5,11 @@ import sys
 def create_logger(logger_name: str) -> logging.Logger:
     """Creates a logger object using input name parameter that outputs to stdout.
 
-    Parameters
-    ----------
-    logger_name : str
-        Name of logger
+    Args:
+        logger_name (str) :Name of logger
 
-    Returns
-    -------
-    logging.Logger
+    Returns:
+        logging.Logger:
         Created logger object
     """
     logger = logging.getLogger(logger_name)
@@ -36,3 +33,18 @@ def get_keys_from_value(d, val, logger=LOGGER):
         return keys[0]
     logger.warning(f"WARNING: source not found vor var {val}")
     return None
+
+
+def get_mip(experiment: str):
+    """
+    Return name of MIP group given the specific experiment name.
+    """
+    if experiment == "ssp245-covid":
+        return "DAMIP"
+    if experiment == "ssp370-lowNTCF":
+        return "AerChemMIP"
+    if experiment.startswith("ssp"):
+        return "ScenarioMIP"
+    if experiment.startswith("hist-"):
+        return "DAMIP"
+    return "CMIP"

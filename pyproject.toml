@@ -93,14 +93,13 @@ replace = '''
 '''
 
 [tool.pylint]
-disable = "C0114,C0115,C0116,R0903,R1710"
+disable = "C0114,C0115,C0116,R0903,R1710,W1203,W0511,W0718"
 max-line-length = 120
 max-locals = 20
 
 [tool.flake8]
 max-line-length = 120
 ignore = ["E203", "E266", "E501", "W503"]
-docstring-convention = "numpy"
 max-complexity = 20
 per-file-ignores = []
 exclude = [
@@ -111,7 +110,7 @@ exclude = [
 
 [tool.black]
 line-length = 120
-target-version = ["py310"]
+target-version = ["py311"]
 
 [tool.isort]
 profile = "black"

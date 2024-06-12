@@ -1,16 +1,149 @@
 # Supported Model sources
-
+NODE_LINK = "http://esgf-node.llnl.gov/esg-search/"
 MODEL_SOURCES = {
-    "NorESM2-LM": {"node_link": "https://esgf-data.dkrz.de/esg-search", "center": "NCC"},
-    "CanESM5": {"node_link": "http://esgf-node.llnl.gov/esg-search/", "center": "CCCma"},
+    "ACCESS-CM2": {
+        "node_link": NODE_LINK,
+        "center": "CSIRO-ARCCSS",
+    },
+    "ACCESS-ESM1-5": {
+        "node_link": NODE_LINK,
+        "center": "CSIRO",
+    },
+    "AWI-CM-1-1-MR": {
+        "node_link": NODE_LINK,
+        "center": "AWI",
+    },
+    "BCC-CSM2-MR": {
+        "node_link": NODE_LINK,
+        "center": "BCC",
+    },
+    "CAMS-CSM1-0": {
+        "node_link": NODE_LINK,
+        "center": "CAMS",
+    },
+    "CAS-ESM2-0": {
+        "node_link": NODE_LINK,
+        "center": "CAS",
+    },
+    "CESM2": {"node_link": NODE_LINK, "center": "NCAR"},
+    "CESM2-WACCM": {
+        "node_link": NODE_LINK,
+        "center": "NCAR",
+    },
+    "CMCC-CM2-SR5": {
+        "node_link": NODE_LINK,
+        "center": "NCAR",
+    },
+    "CMCC-ESM2": {
+        "node_link": NODE_LINK,
+        "center": "CMCC",
+    },
+    "CNRM-CM6-1": {
+        "node_link": NODE_LINK,
+        "center": "CNRM-CERFACS",
+    },
+    "CNRM-CM6-1-HR": {
+        "node_link": NODE_LINK,
+        "center": "CNRM-CERFACS",
+    },
+    "CNRM-ESM2-1": {
+        "node_link": NODE_LINK,
+        "center": "CNRM-CERFACS",
+    },
+    "EC-Earth3": {
+        "node_link": NODE_LINK,
+        "center": "EC-Earth-Consortium",
+    },
+    "EC-Earth3-Veg": {
+        "node_link": NODE_LINK,
+        "center": "EC-Earth-Consortium",
+    },
+    "EC-Earth3-Veg-LR": {
+        "node_link": NODE_LINK,
+        "center": "EC-Earth-Consortium",
+    },
+    "FGOALS-f3-L": {
+        "node_link": NODE_LINK,
+        "center": "CAS",
+    },
+    "FGOALS-g3": {
+        "node_link": NODE_LINK,
+        "center": "CAS",
+    },
+    "GFDL-ESM4": {
+        "node_link": NODE_LINK,
+        "center": "NOAA-GFDL",
+    },
+    "GISS-E2-1-G": {
+        "node_link": NODE_LINK,
+        "center": "NASA-GISS",
+    },
+    "GISS-E2-1-H": {
+        "node_link": NODE_LINK,
+        "center": "NASA-GISS",
+    },
+    "GISS-E2-2-G": {
+        "node_link": NODE_LINK,
+        "center": "NASA-GISS",
+    },
+    "IITM-ESM": {
+        "node_link": NODE_LINK,
+        "center": "CCCR-IITM",
+    },
+    "INM-CM4-8": {
+        "node_link": NODE_LINK,
+        "center": "INM",
+    },
+    "INM-CM5-0": {
+        "node_link": NODE_LINK,
+        "center": "INM",
+    },
+    "IPSL-CM6A-LR": {
+        "node_link": NODE_LINK,
+        "center": "IPSL",
+    },
+    "KACE-1-0-G": {
+        "node_link": NODE_LINK,
+        "center": "NIMS-KMA ",
+    },
+    "MCM-UA-1-0": {
+        "node_link": NODE_LINK,
+        "center": "UA",
+    },
+    "MIROC6": {"node_link": NODE_LINK, "center": "MIROC"},
+    # there are several centers for the MPI models - consider choosing another one if needed
+    "MPI-ESM1-2-HR": {
+        "node_link": NODE_LINK,
+        "center": "MPI-M",
+    },
+    "MPI-ESM1-2-LR": {
+        "node_link": NODE_LINK,
+        "center": "MPI-M",
+    },
+    "MRI-ESM2-0": {
+        "node_link": NODE_LINK,
+        "center": "MRI",
+    },
+    "NorESM2-LM": {
+        "node_link": "https://esgf-data.dkrz.de/esg-search",
+        "center": "NCC",
+    },
+    "NorESM2-MM": {
+        "node_link": "https://esgf-data.dkrz.de/esg-search",
+        "center": "NCC",
+    },
+    "TaiESM1": {
+        "node_link": NODE_LINK,
+        "center": "AS-RCEC",
+    },
+    # there are several centers for the UKESM models - consider choosing another one if needed
+    "UKESM1-0-LL": {
+        "node_link": NODE_LINK,
+        "center": "MOHC",
+    },
+    # "NorESM2-LM": {"node_link": "https://esgf-data.dkrz.de/esg-search", "center": "NCC"},
+    # "CanESM5" : {"node_link": NODE_LINK, "center": "CCCma"}
 }
-
-
-OPENID = (
-    "https://esgf-node.llnl.gov/esgf-idp/openid/causalpaca"  # https://esgf-data.dkrz.de/esgf-idp/openid/causalpaca"
-)
-PASSWORD = "Causalpaca.42"
-
 
 VAR_SOURCE_LOOKUP = {
     "model": [
@@ -1223,4 +1356,4 @@ GRIDDING_HIERACHY = ["gn"]
 REMOVE_RESOLUTONS = ["suhbr"]  # resolution endings to remove e.g. kick CFsubhr if this contains 'subhr'
 
 
-RES_TO_CHUNKSIZE = {"year": 1, "mon": 12, "6hr": 1460, "3hr": 2920, "day": 364, "hour": 8736}
+RES_TO_CHUNKSIZE = {"year": 1, "mon": 12, "6hr": 1460, "3hr": 2920, "day": 364}
