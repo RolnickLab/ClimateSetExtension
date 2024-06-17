@@ -28,8 +28,9 @@ LOGGER = create_logger(__name__)
 
 class Downloader:
     """
-    Class handling the downloading of the data. It communicates with the esgf nodes to search and download
-    the specified data.
+    Class handling the downloading of the data.
+
+    It communicates with the esgf nodes to search and download the specified data.
     """
 
     # TODO Fix complexity issue
@@ -49,7 +50,9 @@ class Downloader:
         # or if variables are specified
         logger=LOGGER,
     ):
-        """Init method for the Downloader
+        """
+        Init method for the Downloader.
+
         Args:
             model (str): Id of the model from which output should be downloaded. A list of all supported model ids can
                 be found in parameters.constants.MODEL_SOURCES. Model data only.
@@ -118,16 +121,14 @@ class Downloader:
                 self.max_ensemble_members = max_possible_member_number
         self.logger.info(f"Downloading data for {self.max_ensemble_members} members.")
 
-        """ # determine if we are on a slurm cluster
-        cluster = "none"
-        if "SLURM_TMPDIR" in os.environ:
-            cluster = "slurm"
+        # determine if we are on a slurm cluster cluster = "none" if "SLURM_TMPDIR" in
+        # os.environ: cluster = "slurm"
+        #
+        # if cluster == "slurm":
+        #     data_dir=f"{os.environ['SLURM_TMPDIR']}/causalpaca/data/"
+        # else:
+        #     data_dir = str(ROOT_DIR) + "/data"
 
-        if cluster == "slurm":
-            data_dir=f"{os.environ['SLURM_TMPDIR']}/causalpaca/data/"
-        else:
-            data_dir = str(ROOT_DIR) + "/data"
-        """
         if variables is None:
             variables = ["tas", "pr", "SO2_em_anthro", "BC_em_anthro"]
         # take care of var mistype (node takes no spaces or '-' only '_')
@@ -227,8 +228,10 @@ class Downloader:
         default_version: str = "latest",
         default_grid_label: str = "gn",
     ):
-        """Function handling the download of a single variable-experiment pair that is associated wtih a model's
-        output (CMIP data).
+        """
+        Function handling the download of a single variable-experiment pair that is associated with a model's output
+        (CMIP data).
+
         Args:
             variable (str): variable Id
             experiment (str): experiment Id
@@ -236,7 +239,6 @@ class Downloader:
             default_frequency (str): default frequency to download
             default_version (str): data upload version, if 'latest', the newest version will get selected always
             defaul_grid_label (str): default gridding method in which the data is provided
-
         """
         conn = SearchConnection(self.model_node_link, distrib=False)
 
@@ -244,7 +246,6 @@ class Downloader:
             "project,experiment_id,source_id,variable,frequency,variant_label,variable, nominal_resolution, "
             "version, grid_label, experiment_id"
         )
-
         """"
 
         # extracting available facets
@@ -437,7 +438,9 @@ class Downloader:
         version="latest",
         grid_label="gn",
     ):
-        """Function handling the download of a all meta data associated with a single input4mips variable.
+        """
+        Function handling the download of  all meta data associated with a single input4mips variable.
+
         Args:
             variable (str): variable Id
             project (str): umbrella project
@@ -445,7 +448,6 @@ class Downloader:
             frequency (str): default frequency to download
             version (str): data upload version, if 'latest', the newest version will get selected always
             grid_label (str): default gridding method in which the data is provided
-
         """
         variable_id = variable.replace("_", "-")
         variable_save = variable.split("_")[0]
@@ -522,7 +524,7 @@ class Downloader:
                 try:
                     ds = xr.open_dataset(f, chunks={"time": chunksize})
                 except OSError:
-                    self.logger.info("Having problems downloading th edateset. The server might be dwon. Skipping")
+                    self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
                     continue
 
                 years = np.unique(ds.time.dt.year.to_numpy())
@@ -561,7 +563,9 @@ class Downloader:
         default_grid_label="gn",
         save_to_meta=False,
     ):
-        """Function handling the download of a all input4mips data associated with a single variable. A
+        """
+        Function handling the download of a all input4mips data associated with a single variable.
+
         Args:
             variable (str): variable Id
             project (str): umbrella project, here "input4mips"
@@ -570,7 +574,6 @@ class Downloader:
             default_version (str): data upload version, if 'latest', the newest version will get selected always
             defaul_grid_label (str): default gridding method in which the data is provided
             save_to_meta (bool): if data should be saved to the meta folder instead of the input4mips folder
-
         """
         conn = SearchConnection(self.model_node_link, distrib=False)
 
@@ -763,13 +766,14 @@ class Downloader:
                             ds_y.to_netcdf(outfile)
 
     def extract_target_mip_exp_name(self, filename: str, target_mip: str):
-        """Helper function extracting the target experiment name from a given file name and the target's umbrella MIP.
+        """
+        Helper function extracting the target experiment name from a given file name and the target's umbrella MIP.
+
         supported target mips: "CMIP" "ScenarioMIP", "DAMIP", "AerChemMIP"
 
         Args:
             filename (str): name of the download url to extract the information from
             target_mip (str): name of the umbreall MIP
-
         """
         year_end = filename.split("_")[-1].split("-")[1].split(".")[0][:4]
         # self.logger.info(f'years from {year_from} to {year_end}')
@@ -805,31 +809,26 @@ class Downloader:
         default_grid_label: str = "gn",
     ):
         """
-        Function handling the download of all variables that are associated wtih a model's output
-        Searches for all filles associated with the respected variables and experiment that the downloader was
-        initialized with.
+        Function handling the download of all variables that are associated with a model's output.
 
-        A search connection is established and the search is iterativeley constraint to meet all specifications.
-        Data is downloaded and stored in a seperate file for each year. The default format is netCDF4.
-        Resulting hierachy:
-            CMIPx
-                model_id
-                    ensemble_member
-                        experiment
-                            variable
-                                nominal_resolution
-                                    frequency
-                                        year.nc
-        If the constraints cannot be met, per default behaviour for the downloader to selecf first other
-        available value.
+        Searches for all files associated with the respected variables and experiment that the downloader
+        was initialized with.
 
+        A search connection is established and the search is iteratively constraint to meet all specifications.
+        Data is downloaded and stored in a separate file for each year. The default format is netCDF4.
+
+        Resulting hierarchy:
+
+        `CMIPx/model_id/ensemble_member/experiment/variable/nominal_resolution/frequency/year.nc`
+
+        If the constraints cannot be met, per default behaviour for the downloader to select first other
+        available value
 
         Args:
             project (str): umbrella project id e.g. CMIPx
             default_frequency (str): default frequency to download
             default_version (str): data upload version, if 'latest', the newest version will get selected always
             defaul_grid_label (str): default gridding method in which the data is provided
-
         """
 
         # iterate over respective vars
@@ -856,17 +855,16 @@ class Downloader:
         default_grid_label="gn",
     ):
         """
-        Function handling the download of all variables that are associated wtih a model's input (input4mips).
-        Searches for all filles associated with the respected variables that the downloader was initialized with.
-        A search connection is established and the search is iterativeley constraint to meet all specifications.
+        Function handling the download of all variables that are associated with a model's input (input4mips).
+
+        Searches for all files associated with the respected variables that the downloader was initialized with.
+        A search connection is established and the search is iteratively constraint to meet all specifications.
         Data is downloaded and stored in a separate file for each year. The default format is netCDF4.
-        Resulting hierachy:
-            input4mips
-                experiment
-                    variable
-                        nominal_resolution
-                            frequency
-                                year.nc
+
+        Resulting hierarchy:
+
+        `input4mips/experiment/variable/nominal_resolution/frequency/year.nc`
+
         If the constraints cannot be met, the default behaviour for the downloader is to select first other
         available value.
 
@@ -876,7 +874,6 @@ class Downloader:
             default_frequency (str): default frequency to download
             default_version (str): data upload version, if 'latest', the newest version will get selected always
             defaul_grid_label (str): default gridding method in which the data is provided
-
         """
         for v in self.raw_vars:
             if v.endswith("openburning"):
@@ -886,7 +883,7 @@ class Downloader:
             self.logger.info(f"Downloading data for variable: {v} \n \n ")
             self.download_raw_input_single_var(v, institution_id=institution_id)
 
-        # if download historical + openburining
+        # if download historical + openburning
         if self.download_biomass_burning & ("historical" in self.experiments):
             for v in self.biomass_vars:
                 self.logger.info(f"Downloading biomassburing data for variable: {v} \n \n ")
@@ -895,10 +892,10 @@ class Downloader:
         if self.download_metafiles:
             for v in self.meta_vars_percentage:
                 # percentage are historic and have no scenarios
-                self.logger.info(f"Downloading meta precentage data for variable: {v} \n \n ")
+                self.logger.info(f"Downloading meta percentage data for variable: {v} \n \n ")
                 self.download_meta_historic_biomassburning_single_var(variable=v, institution_id="VUA")
             for v in self.meta_vars_share:
-                self.logger.info(f"Downloading meta obenburning share data for variable: {v} \n \n ")
+                self.logger.info(f"Downloading meta openburning share data for variable: {v} \n \n ")
                 self.download_raw_input_single_var(v, institution_id="IAMC", save_to_meta=True)
 
 

@@ -3,7 +3,8 @@ import sys
 
 
 def create_logger(logger_name: str) -> logging.Logger:
-    """Creates a logger object using input name parameter that outputs to stdout.
+    """
+    Creates a logger object using input name parameter that outputs to stdout.
 
     Args:
         logger_name (str) :Name of logger
@@ -36,9 +37,7 @@ def get_keys_from_value(d, val, logger=LOGGER):
 
 
 def get_mip(experiment: str):
-    """
-    Return name of MIP group given the specific experiment name.
-    """
+    """Return name of MIP group given the specific experiment name."""
     if experiment == "ssp245-covid":
         return "DAMIP"
     if experiment == "ssp370-lowNTCF":

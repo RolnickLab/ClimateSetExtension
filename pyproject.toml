@@ -21,6 +21,7 @@ pint = "^0.23"
 xesmf = "^0.8.5"
 xarray = "^2024.5.0"
 esgf-pyclient = "^0.3.1"
+docformatter = {extras = ["toml"], version = "^1.7.5"}
 
 [tool.poetry.group.secondary.dependencies]
 jinja2 = ">=3.1.4"
@@ -125,3 +126,12 @@ testpaths = [
     "tests",
 ]
 markers = ["offline: mark a test as needing to be run offline.", ]
+
+[tool.docformatter]
+style = "google"
+pre-summary-newline = true
+wrap-descriptions = 120
+wrap-summaries = 120
+blank = false
+exclude = []
+recursive = true
