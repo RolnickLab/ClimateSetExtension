@@ -133,7 +133,7 @@ class Downloader:
             variables = ["tas", "pr", "SO2_em_anthro", "BC_em_anthro"]
         # take care of var mistype (node takes no spaces or '-' only '_')
         variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
-        self.logger.info("Cleaned vars", variables)
+        self.logger.info(f"Cleaned variables : {variables}")
         for v in variables:
             t = get_keys_from_value(VAR_SOURCE_LOOKUP, v)
             if t == "model":
@@ -210,7 +210,7 @@ class Downloader:
             self.model = next(iter(MODEL_SOURCES))
             if model is not None:
                 self.logger.info(f"WARNING: Model {self.model} unknown. Using default instead.")
-                self.logger.info("Using:", self.model)
+                self.logger.info(f"Using : {self.model}")
             # else None but we still need the links
             self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
             self.model_source_center = MODEL_SOURCES[self.model]["center"]
@@ -269,9 +269,9 @@ class Downloader:
 
         # dealing with grid labels
         grid_labels = list(ctx.facet_counts["grid_label"].keys())
-        self.logger.info("Available grid labels:", grid_labels)
+        self.logger.info(f"Available grid labels : {grid_labels}")
         if default_grid_label in grid_labels:
-            self.logger.info("Choosing grid:", default_grid_label)
+            self.logger.info(f"Choosing grid : {default_grid_label}")
             grid_label = default_grid_label
         else:
             self.logger.info("Default grid label not available.")
@@ -281,7 +281,7 @@ class Downloader:
 
         try:
             nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-            self.logger.info("Available nominal resolution:", nominal_resolutions)
+            self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
             #  deal with multipl nom resolutions availabe
             if len(nominal_resolutions) > 1:
                 self.logger.info(
@@ -290,21 +290,21 @@ class Downloader:
                 )
 
             nominal_resolution = nominal_resolutions[-1]
-            self.logger.info("Choosing nominal resolution", nominal_resolution)
+            self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
         except IndexError:
             self.logger.info("No nominal resolution")
 
         # dealing with frequencies
-        self.logger.info("Available frequencies: ", ctx.facet_counts["frequency"].keys())
+        self.logger.info(f"Available frequencies : {ctx.facet_counts['frequency'].keys()}")
         frequency = "mon"  # list(ctx.facet_counts['frequency'].keys())[-1]
-        self.logger.info("choosing frequency: ", frequency)
+        self.logger.info(f"choosing frequency : {frequency}")
 
         ctx_origin = ctx.constrain(frequency=frequency, nominal_resolution=nominal_resolution)
 
         variants = list(ctx.facet_counts["variant_label"].keys())
 
-        self.logger.info("Available variants:", variants, "\n")
-        self.logger.info("Lenght", len(variants))
+        self.logger.info(f"Available variants : {variants}\n")
+        self.logger.info(f"Length : {len(variants)}")
 
         if self.ensemble_members is None:
             if self.max_ensemble_members > len(variants):
@@ -334,18 +334,18 @@ class Downloader:
             if not versions:
                 self.logger.info("No versions are available. Skipping.")
                 continue
-            self.logger.info("Available versions:", versions)
+            self.logger.info(f"Available versions : {versions}")
 
             if default_version == "latest":
                 version = versions[0]
-                self.logger.info("Chooosing latetst version:", version)
+                self.logger.info(f"Choosing latest version : {versions}")
             else:
                 try:
                     version = versions[default_version]
                 except KeyError:
                     self.logger.info(f"Preferred version {default_version} does not exist.")
                     version = versions[0]
-                    self.logger.info("Resuming with latest verison:", version)
+                    self.logger.info(f"Resuming with latest version : {versions}")
 
             ctx = ctx.constrain(version=version)
 
@@ -358,10 +358,10 @@ class Downloader:
             for i, files in enumerate(files_list):
                 try:
                     file_names = [files[i].opendap_url for i in range(len(files))]
-                    self.logger.info(f"File {i} names: ", file_names)
+                    self.logger.info(f"File {i} names : {file_names}")
 
                     chunksize = RES_TO_CHUNKSIZE[frequency]
-                    self.logger.info("Chunksize", chunksize)
+                    self.logger.info(f"Chunksize : {chunksize}")
 
                     nominal_resolution = nominal_resolution.replace(" ", "_")
 
@@ -419,7 +419,7 @@ class Downloader:
                             if (not self.overwrite) and os.path.isfile(outfile):
                                 self.logger.info(f"File {outfile} already exists, skipping.")
                             else:
-                                self.logger.info("Selecting specific year", y)
+                                self.logger.info(f"Selecting specific year : {y}")
                                 ds_y = ds.sel(time=y)
                                 self.logger.info(ds_y)
                                 self.logger.info("writing file")
@@ -469,7 +469,7 @@ class Downloader:
         # choose nominal resolution if existent
         try:
             nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-            self.logger.info("Available nominal resolution:", nominal_resolutions)
+            self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
 
             # deal with mulitple nominal resoulitions, taking smalles one as default
             if len(nominal_resolutions) > 1:
@@ -478,28 +478,28 @@ class Downloader:
                     "please do a check up"
                 )
             nominal_resolution = nominal_resolutions[0]
-            self.logger.info("Choosing nominal resolution", nominal_resolution)
+            self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
         except IndexError:
             self.logger.info("No nominal resolution")
             nominal_resolution = "none"
         ctx = ctx.constrain(nominal_resolution=nominal_resolution)
 
         versions = list(ctx.facet_counts["version"].keys())
-        self.logger.info("Available versions", versions)
+        self.logger.info(f"Available versions : {version}")
         ctx_origin_v = ctx
 
         if version is not None:
             # deal with different versions
             if version == "latest":
                 version = versions[0]
-                self.logger.info("Chooosing latetst version:", version)
+                self.logger.info(f"Choosing latest version : {versions}")
             else:
                 try:
                     version = versions[version]
                 except KeyError:
                     self.logger.info(f"Preferred version {version} does not exist.")
                     version = versions[0]
-                    self.logger.info("Resuming with latest verison:", version)
+                    self.logger.info(f"Resuming with latest version : {version}")
 
         ctx = ctx_origin_v.constrain(version=version)
         result = ctx.search()
@@ -511,11 +511,11 @@ class Downloader:
 
         for i, files in enumerate(files_list):
             file_names = [files[i].opendap_url for i in range(len(files))]
-            self.logger.info(f"File {i} names: ", file_names)
+            self.logger.info(f"File {i} names : {file_names}")
 
             # find out chunking dependent on resolution
             chunksize = RES_TO_CHUNKSIZE[frequency]
-            self.logger.info("Chunksize", chunksize)
+            self.logger.info(f"Chunksize : {chunksize}")
 
             # replacing spaces for file naming
             nominal_resolution = nominal_resolution.replace(" ", "_")
@@ -544,7 +544,7 @@ class Downloader:
                     if (not self.overwrite) and os.path.isfile(outfile):
                         self.logger.info(f"File {outfile} already exists, skipping.")
                     else:
-                        self.logger.info("Selecting specific year ", y)
+                        self.logger.info(f"Selecting specific year : {y}")
                         ds_y = ds.sel(time=y)
                         self.logger.info(ds_y)
 
@@ -591,9 +591,9 @@ class Downloader:
         # dealing with grid labels
         if default_grid_label is not None:
             grid_labels = list(ctx.facet_counts["grid_label"].keys())
-            self.logger.info("Available grid labels:", grid_labels)
+            self.logger.info(f"Available grid labels : {grid_labels}")
             if default_grid_label in grid_labels:
-                self.logger.info("Choosing grid:", default_grid_label)
+                self.logger.info(f"Choosing grid : {default_grid_label}")
                 grid_label = default_grid_label
             else:
                 self.logger.info("Default grid label not available.")
@@ -606,16 +606,16 @@ class Downloader:
         # choose nominal resolution if existent
         try:
             nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-            self.logger.info("Available nominal resolution:", nominal_resolutions)
+            self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
 
-            # deal with mulitple nominal resoulitions, taking smalles one as default
+            # deal with multiple nominal resolutions, taking smallest one as default
             if len(nominal_resolutions) > 1:
                 self.logger.info(
                     "Multiple nominal resolutions exist, choosing smallest_nominal resolution (trying), "
                     "please do a check up"
                 )
             nominal_resolution = nominal_resolutions[0]
-            self.logger.info("Choosing nominal resolution", nominal_resolution)
+            self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
             ctx = ctx.constrain(nominal_resolution=nominal_resolution)
 
         except IndexError:
@@ -625,11 +625,11 @@ class Downloader:
         if default_frequency is not None:
             # choose default frequency if wanted
             frequencies = list(ctx.facet_counts["frequency"].keys())
-            self.logger.info("Available frequencies: ", frequencies)
+            self.logger.info(f"Available frequencies : {frequencies}")
 
             if default_frequency in frequencies:
                 frequency = default_frequency
-                self.logger.info("Choosing default frequency", frequency)
+                self.logger.info(f"Choosing default frequency : {frequencies}")
             else:
                 frequency = frequencies[0]
                 self.logger.info(
@@ -654,7 +654,7 @@ class Downloader:
                 ctx = ctx_origin.constrain(target_mip=t)
 
             versions = list(ctx.facet_counts["version"].keys())
-            self.logger.info("Available versions", versions)
+            self.logger.info(f"Available versions : {versions}")
             ctx_origin_v = ctx
 
             if default_version is not None:
@@ -680,11 +680,11 @@ class Downloader:
 
             for i, files in enumerate(files_list):
                 file_names = [files[i].opendap_url for i in range(len(files))]
-                self.logger.info(f"File {i} names: ", file_names)
+                self.logger.info(f"File {i} names: {file_names}")
 
                 # find out chunking dependent on resolution
                 chunksize = RES_TO_CHUNKSIZE[frequency]
-                self.logger.info("Chunksize", chunksize)
+                self.logger.info(f"Chunksize : {chunksize}")
 
                 # replacing spaces for file naming
                 nominal_resolution = nominal_resolution.replace(" ", "_")
@@ -694,7 +694,7 @@ class Downloader:
 
                     # make sure to only download data for wanted scenarios
                     if experiment in self.experiments:
-                        self.logger.info("Downloading data for experiment:", experiment)
+                        self.logger.info(f"Downloading data for experiment : {experiment}")
                     else:
                         self.logger.info(
                             f"Experiment {experiment} not in wanted experiments ({self.experiments}). Skipping"
@@ -757,7 +757,7 @@ class Downloader:
                         if (not self.overwrite) and os.path.isfile(outfile):
                             self.logger.info(f"File {outfile} already exists, skipping.")
                         else:
-                            self.logger.info("Selecting specific year ", y)
+                            self.logger.info(f"Selecting specific year : {y}")
                             ds_y = ds.sel(time=y)
                             self.logger.info(ds_y)
 
@@ -785,7 +785,7 @@ class Downloader:
                 experiment = f"{experiment}_covid"
         elif target_mip == "CMIP":
             if int(year_end) > 2015:
-                self.logger.info("TARGET MIP", filename)
+                self.logger.info(f"TARGET MIP : {filename}")
                 experiment = f"ssp{filename.split('ssp')[-1][:3]}"
             else:
                 experiment = "historical"
@@ -796,7 +796,7 @@ class Downloader:
                 experiment = f"{experiment}_lowNTTCF"
 
         else:
-            self.logger.info("WARNING: unknown target mip", target_mip)
+            self.logger.info(f"WARNING: unknown target mip : {target_mip}")
             experiment = "None"
 
         return experiment
@@ -833,17 +833,17 @@ class Downloader:
 
         # iterate over respective vars
         for v in self.model_vars:
-            self.logger.info(f"Downloading data for variable: {v} \n \n ")
+            self.logger.info(f"Downloading data for variable: {v}")
             # iterate over experiments
             for e in self.experiments:
                 # check if experiment is availabe
                 if e in SUPPORTED_EXPERIMENTS:
-                    self.logger.info(f"Downloading data for experiment: {e}\n")
+                    self.logger.info(f"Downloading data for experiment: {e}")
                     self.download_from_model_single_var(v, e)
                 else:
                     self.logger.info(
                         f"Chosen experiment {e} not supported. All supported experiments: {SUPPORTED_EXPERIMENTS}. "
-                        f"\n Skipping. \n"
+                        "Skipping."
                     )
 
     def download_raw_input(
@@ -880,22 +880,22 @@ class Downloader:
                 institution_id = "IAMC"
             else:
                 institution_id = "PNNL-JGCRI"
-            self.logger.info(f"Downloading data for variable: {v} \n \n ")
+            self.logger.info(f"Downloading data for variable: {v}")
             self.download_raw_input_single_var(v, institution_id=institution_id)
 
         # if download historical + openburning
         if self.download_biomass_burning & ("historical" in self.experiments):
             for v in self.biomass_vars:
-                self.logger.info(f"Downloading biomassburing data for variable: {v} \n \n ")
+                self.logger.info(f"Downloading biomassburing data for variable: {v}")
                 self.download_raw_input_single_var(v, institution_id="VUA")
 
         if self.download_metafiles:
             for v in self.meta_vars_percentage:
                 # percentage are historic and have no scenarios
-                self.logger.info(f"Downloading meta percentage data for variable: {v} \n \n ")
+                self.logger.info(f"Downloading meta percentage data for variable: {v}")
                 self.download_meta_historic_biomassburning_single_var(variable=v, institution_id="VUA")
             for v in self.meta_vars_share:
-                self.logger.info(f"Downloading meta openburning share data for variable: {v} \n \n ")
+                self.logger.info(f"Downloading meta openburning share data for variable: {v}")
                 self.download_raw_input_single_var(v, institution_id="IAMC", save_to_meta=True)
 
 
@@ -914,11 +914,11 @@ if __name__ == "__main__":
         LOGGER.info("No climate models specified. Assuming only input4mips data should be downloaded.")
         models = [None]
     downloader_kwargs = cfg["downloader_kwargs"]
-    LOGGER.info("Downloader kwargs:", downloader_kwargs)
+    LOGGER.info(f"Downloader kwargs : {downloader_kwargs}")
 
     # one downloader per climate model
     for m in models:
-        downloader = Downloader(model=m, **downloader_kwargs)
+        downloader = Downloader(model=m, **downloader_kwargs, logger=LOGGER)
         downloader.download_raw_input()
         if m is not None:
             downloader.download_from_model()

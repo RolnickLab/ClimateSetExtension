@@ -1,6 +1,9 @@
 import pandas as pd
 
-DATA_CSV = pd.read_csv("data_building/parameters/selected_scenariosMIPs.csv")
+from climateset import APP_ROOT
+
+# TODO figure out a better/cleaner way to handle this...
+DATA_CSV = pd.read_csv(APP_ROOT / "download/constants/selected_scenariosMIPs.csv")
 
 EMISSIONS_ENDINGS = ["_em_openburning", "_em_anthro", "_em_AIR_anthro"]
 
