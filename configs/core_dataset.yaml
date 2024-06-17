@@ -1,0 +1,4 @@
+models: ["NorESM2-LM"]
+downloader_kwargs:
+  variables: ["CO2", "BC", "SO2", "CH4", "tas", "pr"]
+  experiments: ["historical","ssp126", "ssp245", "ssp370", "ssp585"]

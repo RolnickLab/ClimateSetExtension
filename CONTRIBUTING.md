@@ -47,5 +47,5 @@ New contributions should include appropriate tests.
 
 ## Docstring and type hinting
 
-Docstring format should follow the Numpy standard and type hinting should be used
+Docstring format should follow the Google standard and type hinting should be used
 as per the PEP8 standard : https://docs.python.org/3/library/typing.html
