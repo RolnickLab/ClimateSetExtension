@@ -1,6 +1,8 @@
 import argparse
 import os
 import os.path
+import pathlib
+import subprocess
 from typing import Union
 
 import numpy as np
@@ -135,7 +137,7 @@ class Downloader:
         variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
         self.logger.info(f"Cleaned variables : {variables}")
         for v in variables:
-            t = get_keys_from_value(VAR_SOURCE_LOOKUP, v)
+            t = get_keys_from_value(VAR_SOURCE_LOOKUP, v, self.logger)
             if t == "model":
                 self.model_vars.append(v)
             elif t == "raw":
@@ -258,6 +260,7 @@ class Downloader:
         raise RuntimeError
 
         """
+        self.logger.info("Using download_from_model_single_var() function")
 
         ctx = conn.new_context(
             project=project,
@@ -364,10 +367,12 @@ class Downloader:
                     self.logger.info(f"Chunksize : {chunksize}")
 
                     nominal_resolution = nominal_resolution.replace(" ", "_")
+                    self.logger.info(f"Nominal resolution : {nominal_resolution}")
 
                     for f in file_names:
                         # try to opend datset
                         try:
+                            self.logger.info(f"Opening {f}")
                             ds = xr.open_dataset(f, chunks={"time": chunksize}, engine="netcdf4")
 
                         except OSError:
@@ -377,19 +382,7 @@ class Downloader:
                             continue
 
                         if nominal_resolution == "none":
-                            try:
-                                # check if we really have no nominal resolution
-
-                                # first compute degree by looking at the longitude increment
-                                degree = abs(ds.lon[0].item() - ds.lon[1].item())
-                                # in principle lon and lat should be the same, however, this is just an approximation
-                                # same approximation used by climate modeling centers
-                                # information is just for informing the structure, resolution will be checked
-                                # in preprocessing
-                                nominal_resolution = int(degree * 100)
-                                self.logger.info(f"Infering nominal resolution: {nominal_resolution}")
-                            except Exception as error:
-                                self.logger.warning(f"Caught the following exception but continuing : {error}")
+                            nominal_resolution = self.infer_nominal_resolution(ds, nominal_resolution)
 
                         years = np.unique(ds.time.dt.year.to_numpy())
                         self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
@@ -468,17 +461,7 @@ class Downloader:
 
         # choose nominal resolution if existent
         try:
-            nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-            self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
-
-            # deal with mulitple nominal resoulitions, taking smalles one as default
-            if len(nominal_resolutions) > 1:
-                self.logger.info(
-                    "Multiple nominal resolutions exist, choosing smallest_nominal resolution (trying), "
-                    "please do a check up"
-                )
-            nominal_resolution = nominal_resolutions[0]
-            self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
+            nominal_resolution = self.get_nominal_resolution(ctx)
         except IndexError:
             self.logger.info("No nominal resolution")
             nominal_resolution = "none"
@@ -552,6 +535,19 @@ class Downloader:
                         self.logger.info(outfile)
                         ds_y.to_netcdf(outfile)
 
+    def get_nominal_resolution(self, ctx):
+        nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
+        self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
+        # deal with mulitple nominal resoulitions, taking smalles one as default
+        if len(nominal_resolutions) > 1:
+            self.logger.info(
+                "Multiple nominal resolutions exist, choosing smallest_nominal resolution (trying), "
+                "please do a check up"
+            )
+        nominal_resolution = nominal_resolutions[0]
+        self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
+        return nominal_resolution
+
     # TODO Fix complexity issue
     def download_raw_input_single_var(  # noqa: C901
         self,
@@ -575,11 +571,12 @@ class Downloader:
             defaul_grid_label (str): default gridding method in which the data is provided
             save_to_meta (bool): if data should be saved to the meta folder instead of the input4mips folder
         """
+        self.logger.info("Using download_raw_input_single_var() function")
         conn = SearchConnection(self.model_node_link, distrib=False)
 
         facets = "project,frequency,variable,nominal_resolution,version,target_mip,grid_label"
 
-        # basic constraining (projec, var, institution)
+        # basic constraining (project, var, institution)
 
         ctx = conn.new_context(
             project=project,
@@ -605,17 +602,7 @@ class Downloader:
 
         # choose nominal resolution if existent
         try:
-            nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-            self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
-
-            # deal with multiple nominal resolutions, taking smallest one as default
-            if len(nominal_resolutions) > 1:
-                self.logger.info(
-                    "Multiple nominal resolutions exist, choosing smallest_nominal resolution (trying), "
-                    "please do a check up"
-                )
-            nominal_resolution = nominal_resolutions[0]
-            self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
+            nominal_resolution = self.get_nominal_resolution(ctx)
             ctx = ctx.constrain(nominal_resolution=nominal_resolution)
 
         except IndexError:
@@ -641,17 +628,17 @@ class Downloader:
             frequency = ""
 
         # target mip group
-        target_mips = list(ctx.facet_counts["target_mip"].keys())
-        self.logger.info(f"Available target mips: {target_mips}")
+        mips_targets = list(ctx.facet_counts["target_mip"].keys())
+        self.logger.info(f"Available target mips: {mips_targets}")
         ctx_origin = ctx
 
         self.logger.info("\n")
-        if len(target_mips) == 0:
-            target_mips = [None]
-        for t in target_mips:
-            self.logger.info(f"Target mip: {t}")
-            if t is not None:
-                ctx = ctx_origin.constrain(target_mip=t)
+        if len(mips_targets) == 0:
+            mips_targets = [None]
+        for target in mips_targets:
+            self.logger.info(f"Target mip: {target}")
+            if target is not None:
+                ctx = ctx_origin.constrain(target_mip=target)
 
             versions = list(ctx.facet_counts["version"].keys())
             self.logger.info(f"Available versions : {versions}")
@@ -672,98 +659,103 @@ class Downloader:
 
                 ctx = ctx_origin_v.constrain(version=version)
 
-            result = ctx.search()
+            results = ctx.search()
 
-            self.logger.info(f"Result len  {len(result)}")
+            self.logger.info(f"Result len  {len(results)}")
 
-            files_list = [r.file_context().search() for r in result]
+            temp_download_path = RAW_DATA / "tmp"
+            if not pathlib.Path.exists(temp_download_path):
+                pathlib.Path(temp_download_path).mkdir(parents=True, exist_ok=True)
+            for result in results:
+                file_context = result.file_context()
+                download_script = file_context.get_download_script()
+                subprocess.run(["bash", "-c", download_script, "download", "-s"], shell=False, cwd=temp_download_path)
 
-            for i, files in enumerate(files_list):
-                file_names = [files[i].opendap_url for i in range(len(files))]
-                self.logger.info(f"File {i} names: {file_names}")
+            files_list = temp_download_path.glob("*.nc")
 
-                # find out chunking dependent on resolution
-                chunksize = RES_TO_CHUNKSIZE[frequency]
-                self.logger.info(f"Chunksize : {chunksize}")
+            for f in files_list:
+                experiment = self.extract_target_mip_exp_name(str(f), target)
+                self.logger.info(f"Experiment : {experiment}")
 
-                # replacing spaces for file naming
+                # make sure to only download data for wanted scenarios
+                if experiment in self.experiments:
+                    self.logger.info(f"Saving data for experiment : {experiment}")
+                else:
+                    self.logger.info(
+                        f"Experiment {experiment} not in wanted experiments ({self.experiments}). Skipping"
+                    )
+                    continue
+
+                try:
+                    self.logger.info(f"Opening dataset [{f}]")
+                    with xr.open_dataset(f) as ds:
+                        dataset = ds
+                except OSError as os_error:
+                    self.logger.error(f"Having problems opening the dateset [{f}]. Original file will not be")
+                    self.logger.error(os_error)
+                    continue
+
+                if nominal_resolution == "none":
+                    nominal_resolution = self.infer_nominal_resolution(dataset, nominal_resolution)
+
+                years = np.unique(dataset.time.dt.year.to_numpy())
+                self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
+                year_tag = f"{years[0]}_{years[-1]}"
+
+                if variable in self.biomass_vars:
+                    variable = f"{variable}_em_biomassburning"
+                nominal_resolution = nominal_resolution.strip()
                 nominal_resolution = nominal_resolution.replace(" ", "_")
+                # Check whether the specified path exists or not
+                base_file_name = f"{experiment}_{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
+                if save_to_meta:
+                    # if meta, we have future openburning stuff
 
-                for f in file_names:
-                    experiment = self.extract_target_mip_exp_name(f, t)
+                    out_dir = (
+                        f"future-openburning/{experiment}/{variable.split('_')[0]}/{nominal_resolution}/{frequency}/"
+                    )
+                    out_name = f"future_openburning_{base_file_name}"
+                    path = os.path.join(self.meta_dir_parent, out_dir)
+                else:
+                    out_dir = f"{project}/{experiment}/{variable}/{nominal_resolution}/{frequency}/"
+                    out_name = f"{project}_{base_file_name}"
+                    path = os.path.join(self.data_dir_parent, out_dir)
 
-                    # make sure to only download data for wanted scenarios
-                    if experiment in self.experiments:
-                        self.logger.info(f"Downloading data for experiment : {experiment}")
-                    else:
-                        self.logger.info(
-                            f"Experiment {experiment} not in wanted experiments ({self.experiments}). Skipping"
-                        )
-                        continue
+                os.makedirs(path, exist_ok=True)
+                outfile = path + out_name
 
-                    try:
-                        ds = xr.open_dataset(f, chunks={"time": chunksize})
-                    except OSError:
-                        self.logger.info("Having problems downloading the dateset. The server might be down. Skipping")
-                        continue
+                if (not self.overwrite) and os.path.isfile(outfile):
+                    self.logger.info(f"File {outfile} already exists, skipping.")
+                else:
+                    self.logger.info("Writing file")
+                    self.logger.info(outfile)
+                    chunk_size = RES_TO_CHUNKSIZE[frequency]
+                    dataset = dataset.chunk({"time": chunk_size})
+                    dataset.to_netcdf(outfile, engine="h5netcdf")
 
-                        if nominal_resolution == "none":
-                            try:
-                                # check if we really have no nomianl resolution
-                                # first compute degree by looking at the longitude increment
-                                degree = abs(ds.lon[0].item() - ds.lon[1].item())
-                                # in principal lon and lat should be the same, however, this is just an approximation
-                                # same approximation used by climate modeling centers
-                                # information is just for informing the structure, resolution will be checked
-                                # in preprocessing
-                                nominal_resolution = int(degree * 100)
-                                self.logger.info(f"Infering nominal resolution: {nominal_resolution}")
-                            except Exception as error:
-                                self.logger.warning(f"Caught the following exception but continuing : {error}")
+    def infer_nominal_resolution(self, ds: xr.Dataset, nominal_resolution: str) -> str:
+        """
+        This method checks if there really is not nominal resolution by trying to compute it from the longitude
+        increment.
 
-                    years = np.unique(ds.time.dt.year.to_numpy())
-                    self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
+        In principle lon and lat should be the same, however, this is just an approximation
+        same approximation used by climate modeling centers information is just for
+        informing the structure, resolution will be checked in preprocessing.
 
-                    if variable in self.biomass_vars:
-                        variable = f"{variable}_em_biomassburning"
+        Args:
+            ds:
+            nominal_resolution:
 
-                    for y in years:
-                        y = str(y)
-
-                        # Check whether the specified path exists or not
-                        if save_to_meta:
-                            # if meta, we have future openburning stuff
-
-                            out_dir = (
-                                f"future-openburning/{experiment}/{variable.split('_')[0]}/"
-                                f"{nominal_resolution}/{frequency}/{y}/"
-                            )
-                            out_name = (
-                                f"future_openburning_{experiment}_{variable}_{nominal_resolution}"
-                                f"_{frequency}_{grid_label}_{y}.nc"
-                            )
-                            path = os.path.join(self.meta_dir_parent, out_dir)
-                        else:
-                            out_dir = f"{project}/{experiment}/{variable}/{nominal_resolution}/{frequency}/{y}/"
-                            out_name = (
-                                f"{project}_{experiment}_{variable}_{nominal_resolution}_{frequency}"
-                                f"_{grid_label}_{y}.nc"
-                            )
-                            path = os.path.join(self.data_dir_parent, out_dir)
-
-                        os.makedirs(path, exist_ok=True)
-                        outfile = path + out_name
-
-                        if (not self.overwrite) and os.path.isfile(outfile):
-                            self.logger.info(f"File {outfile} already exists, skipping.")
-                        else:
-                            self.logger.info(f"Selecting specific year : {y}")
-                            ds_y = ds.sel(time=y)
-                            self.logger.info(ds_y)
-
-                            self.logger.info("Writing file")
-                            self.logger.info(outfile)
-                            ds_y.to_netcdf(outfile)
+        Returns:
+        """
+        nom_res = nominal_resolution
+        try:
+            degree = abs(ds.lon[0].item() - ds.lon[1].item())
+            nom_res = int(degree * 100)
+            self.logger.info(f"Inferring nominal resolution: {nom_res}")
+        except Exception as error:
+            self.logger.warning(f"Caught the following exception but continuing : {error}")
+        return nom_res
 
     def extract_target_mip_exp_name(self, filename: str, target_mip: str):
         """
@@ -903,6 +895,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cfg", help="Path to config file.")
     args = parser.parse_args()
+    cli_logger = create_logger("Runtime")
 
     with open(args.cfg, "r", encoding="utf-8") as stream:
         cfg = yaml.safe_load(stream)
@@ -910,15 +903,15 @@ if __name__ == "__main__":
     try:
         models = cfg["models"]
     except Exception as error:
-        LOGGER.warning(f"Caught the following exception but continuing : {error}")
-        LOGGER.info("No climate models specified. Assuming only input4mips data should be downloaded.")
+        cli_logger.warning(f"Caught the following exception but continuing : {error}")
+        cli_logger.info("No climate models specified. Assuming only input4mips data should be downloaded.")
         models = [None]
     downloader_kwargs = cfg["downloader_kwargs"]
-    LOGGER.info(f"Downloader kwargs : {downloader_kwargs}")
+    cli_logger.info(f"Downloader kwargs : {downloader_kwargs}")
 
     # one downloader per climate model
     for m in models:
-        downloader = Downloader(model=m, **downloader_kwargs, logger=LOGGER)
+        downloader = Downloader(model=m, **downloader_kwargs, logger=cli_logger)
         downloader.download_raw_input()
         if m is not None:
             downloader.download_from_model()

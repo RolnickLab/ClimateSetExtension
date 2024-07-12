@@ -23,6 +23,7 @@ xarray = "^2024.5.0"
 esgf-pyclient = "^0.3.1"
 docformatter = {extras = ["toml"], version = "^1.7.5"}
 myproxyclient = "^2.1.1"
+h5netcdf = "^1.3.0"
 
 [tool.poetry.group.secondary.dependencies]
 jinja2 = ">=3.1.4"
