@@ -87,6 +87,7 @@ class Downloader:
         self.model_vars = []
 
         self.ensemble_members = ensemble_members
+        self.max_ensemble_members = max_ensemble_members
         self.year_max = 2100
 
         self.overwrite = overwrite
@@ -115,12 +116,11 @@ class Downloader:
         if max_ensemble_members == -1:
             self.logger.info("Trying to take all ensemble members available.")
             self.max_ensemble_members = max_possible_member_number
-        else:
             # verify that we have enough members for wanted experiments
-            # else choose smallest available for all
-            if max_ensemble_members > max_possible_member_number:
-                self.logger.info("Not enough members available. Choosing smallest maximum.")
-                self.max_ensemble_members = max_possible_member_number
+            # else choose the smallest available for all
+        if max_ensemble_members > max_possible_member_number:
+            self.logger.info("Not enough members available. Choosing smallest maximum.")
+            self.max_ensemble_members = max_possible_member_number
         self.logger.info(f"Downloading data for {self.max_ensemble_members} members.")
 
         # determine if we are on a slurm cluster cluster = "none" if "SLURM_TMPDIR" in
@@ -432,7 +432,7 @@ class Downloader:
         grid_label="gn",
     ):
         """
-        Function handling the download of  all meta data associated with a single input4mips variable.
+        Function handling the download of all meta data associated with a single input4mips variable.
 
         Args:
             variable (str): variable Id
@@ -485,55 +485,102 @@ class Downloader:
                     self.logger.info(f"Resuming with latest version : {version}")
 
         ctx = ctx_origin_v.constrain(version=version)
-        result = ctx.search()
+        results = ctx.search()
 
-        self.logger.info(f"Result len  {len(result)}")
+        self.logger.info(f"Result len  {len(results)}")
 
-        files_list = [r.file_context().search() for r in result]
-        self.logger.info(files_list)
+        result_list = [r.file_context().search() for r in results]
+        self.logger.info(f"List of results :\n{result_list}")
 
-        for i, files in enumerate(files_list):
-            file_names = [files[i].opendap_url for i in range(len(files))]
-            self.logger.info(f"File {i} names : {file_names}")
+        temp_download_path = META_DATA / "tmp"
+        if not pathlib.Path.exists(temp_download_path):
+            pathlib.Path(temp_download_path).mkdir(parents=True, exist_ok=True)
 
+        for result in results:
+            file_context = result.file_context()
+            download_script = file_context.get_download_script()
+            subprocess.run(["bash", "-c", download_script, "download", "-s"], shell=False, cwd=temp_download_path)
+
+        files_list = temp_download_path.glob("*.nc")
+        self.logger.info(f"List of files downloaded : \n{files_list}")
+
+        for f in files_list:
             # find out chunking dependent on resolution
-            chunksize = RES_TO_CHUNKSIZE[frequency]
-            self.logger.info(f"Chunksize : {chunksize}")
+            chunk_size = RES_TO_CHUNKSIZE[frequency]
+            self.logger.info(f"Chunksize : {chunk_size}")
 
             # replacing spaces for file naming
             nominal_resolution = nominal_resolution.replace(" ", "_")
 
-            for f in file_names:
-                try:
-                    ds = xr.open_dataset(f, chunks={"time": chunksize})
-                except OSError:
-                    self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
-                    continue
+            try:
+                dataset = xr.open_dataset(f, chunks={"time": chunk_size})
+            except OSError:
+                self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
+                continue
 
-                years = np.unique(ds.time.dt.year.to_numpy())
-                self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
+            years = np.unique(dataset.time.dt.year.to_numpy())
+            self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
+            year_tag = f"{years[0]}_{years[-1]}"
 
-                for y in years:
-                    y = str(y)
-                    out_dir = f"historic-biomassburning/{variable_save}/{nominal_resolution}/{frequency}/{y}/"
+            out_dir = f"historic-biomassburning/{variable_save}/{nominal_resolution}/{frequency}/"
 
-                    # Check whether the specified path exists or not
-                    path = os.path.join(self.meta_dir_parent, out_dir)
-                    os.makedirs(path, exist_ok=True)
+            # Check whether the specified path exists or not
+            path = os.path.join(self.meta_dir_parent, out_dir)
+            os.makedirs(path, exist_ok=True)
 
-                    out_name = f"{variable}_{nominal_resolution}_{frequency}_{grid_label}_{y}.nc"
-                    outfile = path + out_name
+            base_file_name = f"{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
+            outfile = path + base_file_name
 
-                    if (not self.overwrite) and os.path.isfile(outfile):
-                        self.logger.info(f"File {outfile} already exists, skipping.")
-                    else:
-                        self.logger.info(f"Selecting specific year : {y}")
-                        ds_y = ds.sel(time=y)
-                        self.logger.info(ds_y)
+            if (not self.overwrite) and os.path.isfile(outfile):
+                self.logger.info(f"File {outfile} already exists, skipping.")
+            else:
+                self.logger.info("Writing file")
+                self.logger.info(outfile)
+                dataset = dataset.chunk({"time": chunk_size})
+                dataset.to_netcdf(outfile, engine="h5netcdf")
 
-                        self.logger.info("Writing file")
-                        self.logger.info(outfile)
-                        ds_y.to_netcdf(outfile)
+        # for i, files in enumerate(files_list):
+        #     file_names = [files[i].opendap_url for i in range(len(files))]
+        #     self.logger.info(f"File {i} names : {file_names}")
+        #
+        #     # find out chunking dependent on resolution
+        #     chunksize = RES_TO_CHUNKSIZE[frequency]
+        #     self.logger.info(f"Chunksize : {chunksize}")
+        #
+        #     # replacing spaces for file naming
+        #     nominal_resolution = nominal_resolution.replace(" ", "_")
+        #
+        #     for f in file_names:
+        #         try:
+        #             ds = xr.open_dataset(f, chunks={"time": chunksize})
+        #         except OSError:
+        #             self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
+        #             continue
+        #
+        #         years = np.unique(ds.time.dt.year.to_numpy())
+        #         self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
+        #
+        #         for y in years:
+        #             y = str(y)
+        #             out_dir = f"historic-biomassburning/{variable_save}/{nominal_resolution}/{frequency}/{y}/"
+        #
+        #             # Check whether the specified path exists or not
+        #             path = os.path.join(self.meta_dir_parent, out_dir)
+        #             os.makedirs(path, exist_ok=True)
+        #
+        #             out_name = f"{variable}_{nominal_resolution}_{frequency}_{grid_label}_{y}.nc"
+        #             outfile = path + out_name
+        #
+        #             if (not self.overwrite) and os.path.isfile(outfile):
+        #                 self.logger.info(f"File {outfile} already exists, skipping.")
+        #             else:
+        #                 self.logger.info(f"Selecting specific year : {y}")
+        #                 ds_y = ds.sel(time=y)
+        #                 self.logger.info(ds_y)
+        #
+        #                 self.logger.info("Writing file")
+        #                 self.logger.info(outfile)
+        #                 ds_y.to_netcdf(outfile)
 
     def get_nominal_resolution(self, ctx):
         nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
@@ -663,7 +710,7 @@ class Downloader:
 
             self.logger.info(f"Result len  {len(results)}")
 
-            temp_download_path = RAW_DATA / "tmp"
+            temp_download_path = RAW_DATA / f"tmp/{institution_id}/{variable}"
             if not pathlib.Path.exists(temp_download_path):
                 pathlib.Path(temp_download_path).mkdir(parents=True, exist_ok=True)
             for result in results:
@@ -838,14 +885,7 @@ class Downloader:
                         "Skipping."
                     )
 
-    def download_raw_input(
-        self,
-        project="input4mips",
-        institution_id="PNNL-JGCRI",  # make sure that we have the correct data
-        default_frequency="mon",
-        default_version="latest",
-        default_grid_label="gn",
-    ):
+    def download_raw_input(self):
         """
         Function handling the download of all variables that are associated with a model's input (input4mips).
 
