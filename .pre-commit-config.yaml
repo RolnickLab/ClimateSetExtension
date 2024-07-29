@@ -32,11 +32,17 @@ repos:
       - id: flynt
         args: ["--fail-on-change"]
 
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.5
+    hooks:
+      - id: docformatter
+        args: [ -i ]  # Format in-place
+
   - repo: https://github.com/PyCQA/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
-        additional_dependencies: [flake8-pyproject] 
+        additional_dependencies: [flake8-pyproject]
 
 # sets up .pre-commit-ci.yaml to ensure pre-commit dependencies stay up to date
 ci:
