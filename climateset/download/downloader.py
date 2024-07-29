@@ -221,6 +221,7 @@ class Downloader:
         self.meta_dir_parent = meta_dir
 
     # TODO Fix complexity issue
+    # TODO Refactor download to use wget scripts instead of Opendap, and setup test case
     def download_from_model_single_var(  # noqa: C901
         self,
         variable: str,
@@ -422,6 +423,7 @@ class Downloader:
                     self.logger.warning(f"Caught the following exception but continuing : {error}")
                     continue
 
+    # TODO: test, improve and cleanup download part
     def download_meta_historic_biomassburning_single_var(
         self,
         variable: str,
