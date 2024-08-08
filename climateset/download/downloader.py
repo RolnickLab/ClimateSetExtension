@@ -364,99 +364,20 @@ class Downloader:
 
             results = ctx.search()
 
+            self.logger.info(f"Result len {len(results)}")
+
             temp_download_path = RAW_DATA / f"{self.model}/{ensemble_member}/{experiment}/{variable}"
             if not os.path.exists(temp_download_path):
                 os.makedirs(temp_download_path)
             for result in results:
                 fc = result.file_context()
                 wget_script_content = fc.get_download_script()
-                # script_path = tempfile.mkstemp(suffix='.sh', prefix='download-')[1]
-                # with open(script_path, "w") as writer:
-                #     writer.write(wget_script_content)
-
-                # os.chmod(script_path, 0o750)
-                # download_dir = os.path.dirname(script_path)
-                # print(download_dir)
 
                 subprocess.run(
                     ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
                 )
-                # subprocess.check_output("{}".format(script_path), cwd=download_dir)
 
-            self.logger.info(f"Result len: {len(result)}")
-
-            files_list = [r.file_context().search() for r in result]
-
-            for i, files in enumerate(files_list):
-                try:
-                    file_names = [files[i].opendap_url for i in range(len(files))]
-                    self.logger.info(f"File {i} names : {file_names}")
-
-                    chunksize = RES_TO_CHUNKSIZE[frequency]
-                    self.logger.info(f"Chunksize : {chunksize}")
-
-                    nominal_resolution = nominal_resolution.replace(" ", "_")
-                    self.logger.info(f"Nominal resolution : {nominal_resolution}")
-
-                    for f in file_names:
-                        # Here, f is a URL. Example:
-                        # http://esgf-data04.diasjp.net/thredds/dodsC/esg_dataroot/CMIP6/CMIP/CAS/FGOALS-g3/historical/r6i1p1f1/Amon/tas/gn/v20200411/tas_Amon_FGOALS-g3_historical_r6i1p1f1_gn_185001-185912.nc
-
-                        print(f)
-                        import sys
-
-                        sys.exit()
-                        # try to opend datset
-                        try:
-                            self.logger.info(f"Opening {f}")
-                            ds = xr.open_dataset(f, chunks={"time": chunksize}, engine="netcdf4")
-
-                        except OSError:
-                            self.logger.info(
-                                "Having problems downloading the dateset. The server might be down. Skipping"
-                            )
-                            continue
-
-                        if nominal_resolution == "none":
-                            nominal_resolution = self.infer_nominal_resolution(ds, nominal_resolution)
-
-                        years = np.unique(ds.time.dt.year.to_numpy())
-                        self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
-
-                        for y in years:
-                            y_int = int(y)
-
-                            if y_int > self.year_max:
-                                continue
-
-                            y = str(y)
-                            out_dir = (
-                                f"{project}/{self.model}/{ensemble_member}/{experiment}/{variable}/"
-                                f"{nominal_resolution}/{frequency}/{y}/"
-                            )
-
-                            # check if path is existent
-                            path = os.path.join(self.data_dir_parent, out_dir)
-                            os.makedirs(path, exist_ok=True)
-
-                            out_name = (
-                                f"{project}_{self.model}_{ensemble_member}_{experiment}_{variable}_"
-                                f"{nominal_resolution}_{frequency}_{grid_label}_{y}.nc"
-                            )
-                            outfile = path + out_name
-
-                            if (not self.overwrite) and os.path.isfile(outfile):
-                                self.logger.info(f"File {outfile} already exists, skipping.")
-                            else:
-                                self.logger.info(f"Selecting specific year : {y}")
-                                ds_y = ds.sel(time=y)
-                                self.logger.info(ds_y)
-                                self.logger.info("writing file")
-                                self.logger.info(outfile)
-                                ds_y.to_netcdf(outfile)
-                except Exception as error:
-                    self.logger.warning(f"Caught the following exception but continuing : {error}")
-                    continue
+            # files_list = temp_download_path.glob("*.nc")
 
     # TODO: test, improve and cleanup download part
     def download_meta_historic_biomassburning_single_var(
@@ -662,15 +583,13 @@ class Downloader:
 
         # basic constraining (project, var, institution)
 
-        start_year = datetime(self.start_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
-        end_year = datetime(self.end_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # start_year = datetime(self.start_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # end_year = datetime(self.end_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
         ctx = conn.new_context(
             project=project,
             variable=variable,
             institution_id=institution_id,
             facets=facets,
-            from_timestamp=start_year,
-            to_timestamp=end_year,
         )
 
         # dealing with grid labels
