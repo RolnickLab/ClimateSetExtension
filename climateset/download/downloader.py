@@ -2,6 +2,7 @@ import argparse
 import os
 import os.path
 import pathlib
+import re
 import subprocess
 from datetime import datetime
 from typing import Union
@@ -11,7 +12,7 @@ import xarray as xr
 import yaml
 from pyesgf.search import SearchConnection
 
-from climateset import META_DATA, RAW_DATA
+from climateset import DATA_DIR, META_DATA, RAW_DATA
 from climateset.download.constants.data_constants import (
     DATA_CSV,
     EMISSIONS_ENDINGS,
@@ -51,8 +52,8 @@ class Downloader:
         download_metafiles=True,  # get input4mips meta files
         plain_emission_vars=True,  # specifies if plain variabsle for emissions data are given and rest is inferred
         # or if variables are specified
-        start_year=1750,
-        end_year=2200,
+        start_year=None,
+        end_year=None,
         logger=LOGGER,
     ):
         """
@@ -366,12 +367,16 @@ class Downloader:
 
             self.logger.info(f"Result len {len(results)}")
 
-            temp_download_path = RAW_DATA / f"{self.model}/{ensemble_member}/{experiment}/{variable}"
+            temp_download_path = DATA_DIR / f"{self.model}/{ensemble_member}/{experiment}/{variable}"
             if not os.path.exists(temp_download_path):
                 os.makedirs(temp_download_path)
             for result in results:
                 fc = result.file_context()
                 wget_script_content = fc.get_download_script()
+
+                # Optionally filter file list for download
+                if self.start_year is not None and self.end_year is not None:
+                    wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
 
                 subprocess.run(
                     ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
@@ -456,8 +461,13 @@ class Downloader:
 
         for result in results:
             file_context = result.file_context()
-            download_script = file_context.get_download_script()
-            subprocess.run(["bash", "-c", download_script, "download", "-s"], shell=False, cwd=temp_download_path)
+            wget_script_content = file_context.get_download_script()
+
+            # Optionally filter file list for download
+            if self.start_year is not None and self.end_year is not None:
+                wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
+
+            subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path)
 
         files_list = temp_download_path.glob("*.nc")
         self.logger.info(f"List of files downloaded : \n{files_list}")
@@ -583,8 +593,6 @@ class Downloader:
 
         # basic constraining (project, var, institution)
 
-        # start_year = datetime(self.start_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
-        # end_year = datetime(self.end_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
         ctx = conn.new_context(
             project=project,
             variable=variable,
@@ -675,8 +683,15 @@ class Downloader:
                 pathlib.Path(temp_download_path).mkdir(parents=True, exist_ok=True)
             for result in results:
                 file_context = result.file_context()
-                download_script = file_context.get_download_script()
-                subprocess.run(["bash", "-c", download_script, "download", "-s"], shell=False, cwd=temp_download_path)
+                wget_script_content = file_context.get_download_script()
+
+                # Optionally filter file list for download
+                if self.start_year is not None and self.end_year is not None:
+                    wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
+
+                subprocess.run(
+                    ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
+                )
 
             files_list = temp_download_path.glob("*.nc")
 
@@ -891,6 +906,41 @@ class Downloader:
                 self.download_raw_input_single_var(v, institution_id="IAMC", save_to_meta=True)
 
 
+def filter_download_script(wget_script_content, start_year, end_year):
+    """
+    Function to modify wget download script from ESGF. Only download files which contain dates between start_year and
+    end_year. This is mostly useful for toy dataset creation.
+
+    Args:
+        wget_script_content (str): wget script from ESGF
+        start_year (str): year parsed from config file
+        end_year (str): year parsed from config file
+    """
+    lines = wget_script_content.split("\n")
+    modified_script = []
+    in_section = False
+    finished = False
+    for line in lines:
+        if in_section and not finished:
+            if re.match(r"^EOF", line):
+                in_section = False
+                finished = True
+                modified_script.append(line)
+                continue
+            else:
+                result = re.search(r"(\d{4})(\d{2})-(\d{4})(\d{2})\.nc", line)
+                file_start = result.group(1)
+                file_end = result.group(3)
+                if int(file_end) >= int(start_year) and int(file_start) <= int(end_year):
+                    modified_script.append(line)
+        else:
+            modified_script.append(line)
+            if re.match(r"download_files=\"", line):
+                in_section = True
+
+    return "\n".join(modified_script)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cfg", help="Path to config file.")
@@ -912,6 +962,6 @@ if __name__ == "__main__":
     # one downloader per climate model
     for m in models:
         downloader = Downloader(model=m, **downloader_kwargs, logger=cli_logger)
-        # downloader.download_raw_input()
+        downloader.download_raw_input()
         if m is not None:
             downloader.download_from_model()
