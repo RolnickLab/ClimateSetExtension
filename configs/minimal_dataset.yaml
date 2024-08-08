@@ -1,0 +1,9 @@
+models: ["FGOALS-g3"]
+downloader_kwargs:
+  variables: ["tas"]
+  experiments: ["historical","ssp126"]
+  max_ensemble_members: 1
+  overwrite: true
+  download_biomassburning: false
+  start_year: 2000
+  end_year: 2600

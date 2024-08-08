@@ -3,6 +3,7 @@ import os
 import os.path
 import pathlib
 import subprocess
+from datetime import datetime
 from typing import Union
 
 import numpy as np
@@ -50,6 +51,8 @@ class Downloader:
         download_metafiles=True,  # get input4mips meta files
         plain_emission_vars=True,  # specifies if plain variabsle for emissions data are given and rest is inferred
         # or if variables are specified
+        start_year=1750,
+        end_year=2200,
         logger=LOGGER,
     ):
         """
@@ -94,6 +97,8 @@ class Downloader:
 
         # csv with supported models and sources
         df_model_source = DATA_CSV
+        self.start_year = start_year
+        self.end_year = end_year
 
         # check if model is supported
         if model is not None:
@@ -263,7 +268,11 @@ class Downloader:
         """
         self.logger.info("Using download_from_model_single_var() function")
 
+        start_year = datetime(self.start_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_year = datetime(self.end_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
         ctx = conn.new_context(
+            from_timestamp=start_year,
+            to_timestamp=end_year,
             project=project,
             experiment_id=experiment,
             source_id=self.model,
@@ -353,7 +362,26 @@ class Downloader:
 
             ctx = ctx.constrain(version=version)
 
-            result = ctx.search()
+            results = ctx.search()
+
+            temp_download_path = RAW_DATA / f"{self.model}/{ensemble_member}/{experiment}/{variable}"
+            if not os.path.exists(temp_download_path):
+                os.makedirs(temp_download_path)
+            for result in results:
+                fc = result.file_context()
+                wget_script_content = fc.get_download_script()
+                # script_path = tempfile.mkstemp(suffix='.sh', prefix='download-')[1]
+                # with open(script_path, "w") as writer:
+                #     writer.write(wget_script_content)
+
+                # os.chmod(script_path, 0o750)
+                # download_dir = os.path.dirname(script_path)
+                # print(download_dir)
+
+                subprocess.run(
+                    ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
+                )
+                # subprocess.check_output("{}".format(script_path), cwd=download_dir)
 
             self.logger.info(f"Result len: {len(result)}")
 
@@ -371,6 +399,13 @@ class Downloader:
                     self.logger.info(f"Nominal resolution : {nominal_resolution}")
 
                     for f in file_names:
+                        # Here, f is a URL. Example:
+                        # http://esgf-data04.diasjp.net/thredds/dodsC/esg_dataroot/CMIP6/CMIP/CAS/FGOALS-g3/historical/r6i1p1f1/Amon/tas/gn/v20200411/tas_Amon_FGOALS-g3_historical_r6i1p1f1_gn_185001-185912.nc
+
+                        print(f)
+                        import sys
+
+                        sys.exit()
                         # try to opend datset
                         try:
                             self.logger.info(f"Opening {f}")
@@ -627,11 +662,15 @@ class Downloader:
 
         # basic constraining (project, var, institution)
 
+        start_year = datetime(self.start_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_year = datetime(self.end_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
         ctx = conn.new_context(
             project=project,
             variable=variable,
             institution_id=institution_id,
             facets=facets,
+            from_timestamp=start_year,
+            to_timestamp=end_year,
         )
 
         # dealing with grid labels
@@ -954,6 +993,6 @@ if __name__ == "__main__":
     # one downloader per climate model
     for m in models:
         downloader = Downloader(model=m, **downloader_kwargs, logger=cli_logger)
-        downloader.download_raw_input()
+        # downloader.download_raw_input()
         if m is not None:
             downloader.download_from_model()
