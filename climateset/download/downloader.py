@@ -4,7 +4,6 @@ import os.path
 import pathlib
 import re
 import subprocess
-from datetime import datetime
 from typing import Union
 
 import numpy as np
@@ -269,11 +268,7 @@ class Downloader:
         """
         self.logger.info("Using download_from_model_single_var() function")
 
-        start_year = datetime(self.start_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
-        end_year = datetime(self.end_year, 1, 1, 0, 0).strftime("%Y-%m-%dT%H:%M:%SZ")
         ctx = conn.new_context(
-            from_timestamp=start_year,
-            to_timestamp=end_year,
             project=project,
             experiment_id=experiment,
             source_id=self.model,
@@ -381,8 +376,6 @@ class Downloader:
                 subprocess.run(
                     ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
                 )
-
-            # files_list = temp_download_path.glob("*.nc")
 
     # TODO: test, improve and cleanup download part
     def download_meta_historic_biomassburning_single_var(
