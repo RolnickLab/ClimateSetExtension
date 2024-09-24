@@ -1,3 +1,4 @@
+########################################################################################
 # DO NOT MODIFY!!!
 # If necessary, override the corresponding variable and/or target, or create new ones
 # in one of the following files, depending on the nature of the override :
@@ -8,13 +9,14 @@
 # files to include.
 #
 # Please report bugs to francis.pelletier@mila.quebec
+########################################################################################
 
 # Basic variables
 PROJECT_PATH := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 MAKEFILE_NAME := $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 SHELL := /usr/bin/env bash
 BUMP_TOOL := bump-my-version
-APP_VERSION := 0.0.0
+MAKEFILE_VERSION := 0.2.0
 DOCKER_COMPOSE ?= docker compose
 AUTO_INSTALL ?=
 
@@ -94,8 +96,8 @@ conda-install: ## Install Conda on your local machine
 				echo "Fetching and installing miniconda"; \
 				echo " "; \
 				wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh; \
-    			bash ~/miniconda.sh -b -p ${HOME}/.conda; \
-    			export PATH=${HOME}/.conda/bin:$PATH; \
+    			bash ~/miniconda.sh -b -p $${HOME}/.conda; \
+    			export PATH=$${HOME}/.conda/bin:$$PATH; \
     			conda init; \
 				/usr/bin/rm ~/miniconda.sh; \
 				;; \
@@ -118,9 +120,13 @@ conda-env-info: ## Print information about active Conda environment using <CONDA
 
 .PHONY: _conda-poetry-install
 _conda-poetry-install:
-	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) install -c conda-forge -y poetry; \
-
-
+	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) install -c conda-forge poetry; \
+	CURRENT_VERSION=$$(poetry --version | awk '{print $$NF}' | tr -d ')'); \
+	REQUIRED_VERSION="1.6.0"; \
+	if [ "$$(printf '%s\n' "$$REQUIRED_VERSION" "$$CURRENT_VERSION" | sort -V | head -n1)" != "$$REQUIRED_VERSION" ]; then \
+		echo "Poetry installed version $$CURRENT_VERSION is less than minimal version $$REQUIRED_VERSION, fixing urllib3 version to prevent problems"; \
+		poetry add "urllib3<2.0.0"; \
+	fi;
 
 .PHONY:conda-poetry-install
 conda-poetry-install: ## Install Poetry in currently active Conda environment. Will fail if Conda is not found
@@ -395,25 +401,26 @@ bump-patch: ## Bump application patch version  <0.0.X>
 
 .PHONY: check-lint
 check-lint: ## Check code linting (black, isort, flake8, docformatter and pylint)
-	poetry run tox -e black,isort,flake8,docformatter,pylint
+	poetry run nox -s check
 
 .PHONY: check-pylint
-check-pylint: ## Check code with pylint
-	poetry run tox -e pylint
+check-pylint: ## Check code linting with pylint
+	poetry run nox -s pylint
 
 .PHONY: fix-lint
 fix-lint: ## Fix code linting (black, isort, flynt, docformatter)
-	poetry run tox -e fix
+	poetry run nox -s fix
 
 .PHONY: precommit
 precommit: ## Run Pre-commit on all files manually
-	poetry run tox -e precommit
+	poetry run nox -s precommit
+
 
 ## -- Tests targets ------------------------------------------------------------------------------------------------- ##
 
 .PHONY: test
 test: ## Run all tests
-	poetry run tox -e test
+	poetry run nox -s test
 
 TEST_ARGS ?=
 MARKER_TEST_ARGS = -m "$(TEST_ARGS)"
@@ -421,9 +428,9 @@ SPECIFIC_TEST_ARGS = -k "$(TEST_ARGS)"
 CUSTOM_TEST_ARGS = "$(TEST_ARGS)"
 
 .PHONY: test-marker
-test-marker: ## Run tests using pytest markers. Ex. make test-tag TEST_ARGS="<marker>"
+test-marker: ## Run tests using pytest markers. Ex. make test-marker TEST_ARGS="<marker>"
 	@if [ -n "$(TEST_ARGS)" ]; then \
-		poetry run tox -e test-custom -- -- $(MARKER_TEST_ARGS); \
+		poetry run nox -s test_custom -- -- $(MARKER_TEST_ARGS); \
 	else \
 		echo "" ; \
     	echo 'ERROR : Variable TEST_ARGS has not been set, please rerun the command like so :' ; \
@@ -434,7 +441,7 @@ test-marker: ## Run tests using pytest markers. Ex. make test-tag TEST_ARGS="<ma
 .PHONY: test-specific
 test-specific: ## Run specific tests using the -k option. Ex. make test-specific TEST_ARGS="<name-of-test>"
 	@if [ -n "$(TEST_ARGS)" ]; then \
-  		poetry run tox -e test-custom -- -- $(SPECIFIC_TEST_ARGS); \
+  		poetry run nox -s test_custom -- -- $(SPECIFIC_TEST_ARGS); \
 	else \
 		echo "" ; \
     	echo 'ERROR : Variable TEST_ARGS has not been set, please rerun the command like so :' ; \
@@ -446,7 +453,7 @@ test-specific: ## Run specific tests using the -k option. Ex. make test-specific
 .PHONY: test-custom
 test-custom: ## Run tests with custom args. Ex. make test-custom TEST_ARGS="-m 'not offline'"
 	@if [ -n "$(TEST_ARGS)" ]; then \
-  		poetry run tox -e test-custom -- -- $(CUSTOM_TEST_ARGS); \
+  		poetry run nox -s test_custom -- -- $(CUSTOM_TEST_ARGS); \
 	else \
 	  	echo "" ; \
     	echo 'ERROR : Variable TEST_ARGS has not been set, please rerun the command like so :' ; \

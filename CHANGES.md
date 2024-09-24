@@ -7,3 +7,4 @@
 - Add linting tools
 - Add CI
 - Add basic structure of package
+- Update makefile

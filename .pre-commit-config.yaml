@@ -15,6 +15,7 @@ repos:
       - id: check-docstring-first
       - id: detect-private-key
       - id: check-added-large-files
+        args: ["--maxkb=5000"]
 
   - repo: https://github.com/psf/black
     rev: 23.12.1
@@ -37,6 +38,7 @@ repos:
     hooks:
       - id: docformatter
         args: [ -i ]  # Format in-place
+        additional_dependencies: [tomli]
 
   - repo: https://github.com/PyCQA/flake8
     rev: 7.0.0
