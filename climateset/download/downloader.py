@@ -2,13 +2,11 @@ import argparse
 import os
 import os.path
 import pathlib
-import re
 import subprocess
 from typing import Union
 
 import numpy as np
 import xarray as xr
-import yaml
 from pyesgf.search import SearchConnection
 
 from climateset import DATA_DIR, META_DATA, RAW_DATA
@@ -24,7 +22,13 @@ from climateset.download.constants.esgf_server import (
     SUPPORTED_EXPERIMENTS,
     VAR_SOURCE_LOOKUP,
 )
-from climateset.utils import create_logger, get_keys_from_value
+from climateset.download.utils import (
+    extract_target_mip_exp_name,
+    filter_download_script,
+    get_nominal_resolution,
+    infer_nominal_resolution,
+)
+from climateset.utils import create_logger, get_keys_from_value, get_yaml_config
 
 LOGGER = create_logger(__name__)
 
@@ -417,7 +421,7 @@ class Downloader:
 
         # choose nominal resolution if existent
         try:
-            nominal_resolution = self.get_nominal_resolution(ctx)
+            nominal_resolution = get_nominal_resolution(ctx)
         except IndexError:
             self.logger.info("No nominal resolution")
             nominal_resolution = "none"
@@ -543,19 +547,6 @@ class Downloader:
         #                 self.logger.info(outfile)
         #                 ds_y.to_netcdf(outfile)
 
-    def get_nominal_resolution(self, ctx):
-        nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-        self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
-        # deal with mulitple nominal resoulitions, taking smalles one as default
-        if len(nominal_resolutions) > 1:
-            self.logger.info(
-                "Multiple nominal resolutions exist, choosing smallest_nominal resolution (trying), "
-                "please do a check up"
-            )
-        nominal_resolution = nominal_resolutions[0]
-        self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
-        return nominal_resolution
-
     # TODO Fix complexity issue
     def download_raw_input_single_var(  # noqa: C901
         self,
@@ -610,7 +601,7 @@ class Downloader:
 
         # choose nominal resolution if existent
         try:
-            nominal_resolution = self.get_nominal_resolution(ctx)
+            nominal_resolution = get_nominal_resolution(ctx)
             ctx = ctx.constrain(nominal_resolution=nominal_resolution)
 
         except IndexError:
@@ -689,7 +680,7 @@ class Downloader:
             files_list = temp_download_path.glob("*.nc")
 
             for f in files_list:
-                experiment = self.extract_target_mip_exp_name(str(f), target)
+                experiment = extract_target_mip_exp_name(str(f), target)
                 self.logger.info(f"Experiment : {experiment}")
 
                 # make sure to only download data for wanted scenarios
@@ -711,7 +702,7 @@ class Downloader:
                     continue
 
                 if nominal_resolution == "none":
-                    nominal_resolution = self.infer_nominal_resolution(dataset, nominal_resolution)
+                    nominal_resolution = infer_nominal_resolution(dataset, nominal_resolution)
 
                 years = np.unique(dataset.time.dt.year.to_numpy())
                 self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
@@ -747,66 +738,6 @@ class Downloader:
                     chunk_size = RES_TO_CHUNKSIZE[frequency]
                     dataset = dataset.chunk({"time": chunk_size})
                     dataset.to_netcdf(outfile, engine="h5netcdf")
-
-    def infer_nominal_resolution(self, ds: xr.Dataset, nominal_resolution: str) -> str:
-        """
-        This method checks if there really is not nominal resolution by trying to compute it from the longitude
-        increment.
-
-        In principle lon and lat should be the same, however, this is just an approximation
-        same approximation used by climate modeling centers information is just for
-        informing the structure, resolution will be checked in preprocessing.
-
-        Args:
-            ds:
-            nominal_resolution:
-
-        Returns:
-        """
-        nom_res = nominal_resolution
-        try:
-            degree = abs(ds.lon[0].item() - ds.lon[1].item())
-            nom_res = int(degree * 100)
-            self.logger.info(f"Inferring nominal resolution: {nom_res}")
-        except Exception as error:
-            self.logger.warning(f"Caught the following exception but continuing : {error}")
-        return nom_res
-
-    def extract_target_mip_exp_name(self, filename: str, target_mip: str):
-        """
-        Helper function extracting the target experiment name from a given file name and the target's umbrella MIP.
-
-        supported target mips: "CMIP" "ScenarioMIP", "DAMIP", "AerChemMIP"
-
-        Args:
-            filename (str): name of the download url to extract the information from
-            target_mip (str): name of the umbreall MIP
-        """
-        year_end = filename.split("_")[-1].split("-")[1].split(".")[0][:4]
-        # self.logger.info(f'years from {year_from} to {year_end}')
-
-        if (target_mip == "ScenarioMIP") or (target_mip == "DAMIP"):
-            # extract ssp experiment from file name
-            experiment = f"ssp{filename.split('ssp')[-1][:3]}"
-            if "covid" in filename:
-                experiment = f"{experiment}_covid"
-        elif target_mip == "CMIP":
-            if int(year_end) > 2015:
-                self.logger.info(f"TARGET MIP : {filename}")
-                experiment = f"ssp{filename.split('ssp')[-1][:3]}"
-            else:
-                experiment = "historical"
-
-        elif target_mip == "AerChemMIP":
-            experiment = f"ssp{filename.split('ssp')[-1][:3]}"
-            if "lowNTCF" in filename:
-                experiment = f"{experiment}_lowNTTCF"
-
-        else:
-            self.logger.info(f"WARNING: unknown target mip : {target_mip}")
-            experiment = "None"
-
-        return experiment
 
     def download_from_model(
         self,
@@ -899,49 +830,13 @@ class Downloader:
                 self.download_raw_input_single_var(v, institution_id="IAMC", save_to_meta=True)
 
 
-def filter_download_script(wget_script_content, start_year, end_year):
-    """
-    Function to modify wget download script from ESGF. Only download files which contain dates between start_year and
-    end_year. This is mostly useful for toy dataset creation.
-
-    Args:
-        wget_script_content (str): wget script from ESGF
-        start_year (str): year parsed from config file
-        end_year (str): year parsed from config file
-    """
-    lines = wget_script_content.split("\n")
-    modified_script = []
-    in_section = False
-    finished = False
-    for line in lines:
-        if in_section and not finished:
-            if re.match(r"^EOF", line):
-                in_section = False
-                finished = True
-                modified_script.append(line)
-                continue
-            else:
-                result = re.search(r"(\d{4})(\d{2})-(\d{4})(\d{2})\.nc", line)
-                file_start = result.group(1)
-                file_end = result.group(3)
-                if int(file_end) >= int(start_year) and int(file_start) <= int(end_year):
-                    modified_script.append(line)
-        else:
-            modified_script.append(line)
-            if re.match(r"download_files=\"", line):
-                in_section = True
-
-    return "\n".join(modified_script)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cfg", help="Path to config file.")
     args = parser.parse_args()
     cli_logger = create_logger("Runtime")
 
-    with open(args.cfg, "r", encoding="utf-8") as stream:
-        cfg = yaml.safe_load(stream)
+    cfg = get_yaml_config(args.cfg)
 
     try:
         models = cfg["models"]
