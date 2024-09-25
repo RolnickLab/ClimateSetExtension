@@ -1,32 +1,23 @@
 import argparse
-import os
-import os.path
-import pathlib
 import subprocess
 from typing import Union
 
-import numpy as np
-import xarray as xr
 from pyesgf.search import SearchConnection
 
-from climateset import DATA_DIR, META_DATA, RAW_DATA
+from climateset import META_DATA, RAW_DATA
 from climateset.download.constants.data_constants import (
     DATA_CSV,
     EMISSIONS_ENDINGS,
     META_ENDINGS_PRC,
     META_ENDINGS_SHAR,
 )
-from climateset.download.constants.esgf_server import (
+from climateset.download.constants.esgf_server import (  # RES_TO_CHUNKSIZE,
     MODEL_SOURCES,
-    RES_TO_CHUNKSIZE,
     SUPPORTED_EXPERIMENTS,
     VAR_SOURCE_LOOKUP,
 )
-from climateset.download.utils import (
-    extract_target_mip_exp_name,
-    filter_download_script,
+from climateset.download.utils import (  # extract_target_mip_exp_name,; filter_download_script,; infer_nominal_resolution,
     get_nominal_resolution,
-    infer_nominal_resolution,
 )
 from climateset.utils import create_logger, get_keys_from_value, get_yaml_config
 
@@ -366,16 +357,16 @@ class Downloader:
 
             self.logger.info(f"Result len {len(results)}")
 
-            temp_download_path = DATA_DIR / f"{self.model}/{ensemble_member}/{experiment}/{variable}"
-            if not os.path.exists(temp_download_path):
-                os.makedirs(temp_download_path)
+            temp_download_path = RAW_DATA / f"{self.model}/{variable}"
+            temp_download_path.mkdir(parents=True, exist_ok=True)
+
             for result in results:
                 fc = result.file_context()
                 wget_script_content = fc.get_download_script()
 
-                # Optionally filter file list for download
-                if self.start_year is not None and self.end_year is not None:
-                    wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
+                # # Optionally filter file list for download
+                # if self.start_year is not None and self.end_year is not None:
+                #     wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
 
                 subprocess.run(
                     ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
@@ -403,7 +394,7 @@ class Downloader:
             grid_label (str): default gridding method in which the data is provided
         """
         variable_id = variable.replace("_", "-")
-        variable_save = variable.split("_")[0]
+        # variable_save = variable.split("_")[0]
         variable_search = f"percentage_{variable_id.replace('-', '_').split('_')[-1]}"
         self.logger.info(variable, variable_id, institution_id)
         conn = SearchConnection(self.model_node_link, distrib=False)
@@ -452,57 +443,56 @@ class Downloader:
         result_list = [r.file_context().search() for r in results]
         self.logger.info(f"List of results :\n{result_list}")
 
-        temp_download_path = META_DATA / "tmp"
-        if not pathlib.Path.exists(temp_download_path):
-            pathlib.Path(temp_download_path).mkdir(parents=True, exist_ok=True)
+        temp_download_path = RAW_DATA / f"{institution_id}/{variable}"
+        temp_download_path.mkdir(parents=True, exist_ok=True)
 
         for result in results:
             file_context = result.file_context()
             wget_script_content = file_context.get_download_script()
 
             # Optionally filter file list for download
-            if self.start_year is not None and self.end_year is not None:
-                wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
+            # if self.start_year is not None and self.end_year is not None:
+            #     wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
 
             subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path)
-
-        files_list = temp_download_path.glob("*.nc")
-        self.logger.info(f"List of files downloaded : \n{files_list}")
-
-        for f in files_list:
-            # find out chunking dependent on resolution
-            chunk_size = RES_TO_CHUNKSIZE[frequency]
-            self.logger.info(f"Chunksize : {chunk_size}")
-
-            # replacing spaces for file naming
-            nominal_resolution = nominal_resolution.replace(" ", "_")
-
-            try:
-                dataset = xr.open_dataset(f, chunks={"time": chunk_size})
-            except OSError:
-                self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
-                continue
-
-            years = np.unique(dataset.time.dt.year.to_numpy())
-            self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
-            year_tag = f"{years[0]}_{years[-1]}"
-
-            out_dir = f"historic-biomassburning/{variable_save}/{nominal_resolution}/{frequency}/"
-
-            # Check whether the specified path exists or not
-            path = os.path.join(self.meta_dir_parent, out_dir)
-            os.makedirs(path, exist_ok=True)
-
-            base_file_name = f"{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
-            outfile = path + base_file_name
-
-            if (not self.overwrite) and os.path.isfile(outfile):
-                self.logger.info(f"File {outfile} already exists, skipping.")
-            else:
-                self.logger.info("Writing file")
-                self.logger.info(outfile)
-                dataset = dataset.chunk({"time": chunk_size})
-                dataset.to_netcdf(outfile, engine="h5netcdf")
+        #
+        # files_list = temp_download_path.glob("*.nc")
+        # self.logger.info(f"List of files downloaded : \n{files_list}")
+        #
+        # for f in files_list:
+        #     # find out chunking dependent on resolution
+        #     chunk_size = RES_TO_CHUNKSIZE[frequency]
+        #     self.logger.info(f"Chunksize : {chunk_size}")
+        #
+        #     # replacing spaces for file naming
+        #     nominal_resolution = nominal_resolution.replace(" ", "_")
+        #
+        #     try:
+        #         dataset = xr.open_dataset(f, chunks={"time": chunk_size})
+        #     except OSError:
+        #         self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
+        #         continue
+        #
+        #     years = np.unique(dataset.time.dt.year.to_numpy())
+        #     self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
+        #     year_tag = f"{years[0]}_{years[-1]}"
+        #
+        #     out_dir = f"historic-biomassburning/{variable_save}/{nominal_resolution}/{frequency}/"
+        #
+        #     # Check whether the specified path exists or not
+        #     path = os.path.join(self.meta_dir_parent, out_dir)
+        #     os.makedirs(path, exist_ok=True)
+        #
+        #     base_file_name = f"{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
+        #     outfile = path + base_file_name
+        #
+        #     if (not self.overwrite) and os.path.isfile(outfile):
+        #         self.logger.info(f"File {outfile} already exists, skipping.")
+        #     else:
+        #         self.logger.info("Writing file")
+        #         self.logger.info(outfile)
+        #         dataset = dataset.chunk({"time": chunk_size})
+        #         dataset.to_netcdf(outfile, engine="h5netcdf")
 
         # for i, files in enumerate(files_list):
         #     file_names = [files[i].opendap_url for i in range(len(files))]
@@ -662,90 +652,84 @@ class Downloader:
 
             self.logger.info(f"Result len  {len(results)}")
 
-            temp_download_path = RAW_DATA / f"tmp/{institution_id}/{variable}"
-            if not pathlib.Path.exists(temp_download_path):
-                pathlib.Path(temp_download_path).mkdir(parents=True, exist_ok=True)
+            temp_download_path = RAW_DATA / f"{institution_id}/{variable}"
+            temp_download_path.mkdir(parents=True, exist_ok=True)
+
             for result in results:
                 file_context = result.file_context()
                 wget_script_content = file_context.get_download_script()
 
                 # Optionally filter file list for download
-                if self.start_year is not None and self.end_year is not None:
-                    wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
+                # if self.start_year is not None and self.end_year is not None:
+                # wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
 
                 subprocess.run(
                     ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
                 )
+            #
+            # files_list = temp_download_path.glob("*.nc")
+            #
+            # for f in files_list:
+            #     experiment = extract_target_mip_exp_name(str(f), target)
+            #     self.logger.info(f"Experiment : {experiment}")
+            #
+            #     # make sure to only download data for wanted scenarios
+            #     if experiment in self.experiments:
+            #         self.logger.info(f"Saving data for experiment : {experiment}")
+            #     else:
+            #         self.logger.info(
+            #             f"Experiment {experiment} not in wanted experiments ({self.experiments}). Skipping"
+            #         )
+            #         continue
+            #
+            #     try:
+            #         self.logger.info(f"Opening dataset [{f}]")
+            #         with xr.open_dataset(f) as ds:
+            #             dataset = ds
+            #     except OSError as os_error:
+            #         self.logger.error(f"Having problems opening the dateset [{f}]. Original file will not be")
+            #         self.logger.error(os_error)
+            #         continue
+            #
+            #     if nominal_resolution == "none":
+            #         nominal_resolution = infer_nominal_resolution(dataset, nominal_resolution)
+            #
+            #     years = np.unique(dataset.time.dt.year.to_numpy())
+            #     self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
+            #     year_tag = f"{years[0]}_{years[-1]}"
+            #
+            #     if variable in self.biomass_vars:
+            #         variable = f"{variable}_em_biomassburning"
+            #     nominal_resolution = nominal_resolution.strip()
+            #     nominal_resolution = nominal_resolution.replace(" ", "_")
+            #     # Check whether the specified path exists or not
+            #     base_file_name = f"{experiment}_{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
+            #     if save_to_meta:
+            #         # if meta, we have future openburning stuff
+            #
+            #         out_dir = (
+            #             f"future-openburning/{experiment}/{variable.split('_')[0]}/{nominal_resolution}/{frequency}/"
+            #         )
+            #         out_name = f"future_openburning_{base_file_name}"
+            #         path = os.path.join(self.meta_dir_parent, out_dir)
+            #     else:
+            #         out_dir = f"{project}/{experiment}/{variable}/{nominal_resolution}/{frequency}/"
+            #         out_name = f"{project}_{base_file_name}"
+            #         path = os.path.join(self.data_dir_parent, out_dir)
+            #
+            #     os.makedirs(path, exist_ok=True)
+            #     outfile = path + out_name
+            #
+            #     if (not self.overwrite) and os.path.isfile(outfile):
+            #         self.logger.info(f"File {outfile} already exists, skipping.")
+            #     else:
+            #         self.logger.info("Writing file")
+            #         self.logger.info(outfile)
+            #         chunk_size = RES_TO_CHUNKSIZE[frequency]
+            #         dataset = dataset.chunk({"time": chunk_size})
+            #         dataset.to_netcdf(outfile, engine="h5netcdf")
 
-            files_list = temp_download_path.glob("*.nc")
-
-            for f in files_list:
-                experiment = extract_target_mip_exp_name(str(f), target)
-                self.logger.info(f"Experiment : {experiment}")
-
-                # make sure to only download data for wanted scenarios
-                if experiment in self.experiments:
-                    self.logger.info(f"Saving data for experiment : {experiment}")
-                else:
-                    self.logger.info(
-                        f"Experiment {experiment} not in wanted experiments ({self.experiments}). Skipping"
-                    )
-                    continue
-
-                try:
-                    self.logger.info(f"Opening dataset [{f}]")
-                    with xr.open_dataset(f) as ds:
-                        dataset = ds
-                except OSError as os_error:
-                    self.logger.error(f"Having problems opening the dateset [{f}]. Original file will not be")
-                    self.logger.error(os_error)
-                    continue
-
-                if nominal_resolution == "none":
-                    nominal_resolution = infer_nominal_resolution(dataset, nominal_resolution)
-
-                years = np.unique(dataset.time.dt.year.to_numpy())
-                self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
-                year_tag = f"{years[0]}_{years[-1]}"
-
-                if variable in self.biomass_vars:
-                    variable = f"{variable}_em_biomassburning"
-                nominal_resolution = nominal_resolution.strip()
-                nominal_resolution = nominal_resolution.replace(" ", "_")
-                # Check whether the specified path exists or not
-                base_file_name = f"{experiment}_{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
-                if save_to_meta:
-                    # if meta, we have future openburning stuff
-
-                    out_dir = (
-                        f"future-openburning/{experiment}/{variable.split('_')[0]}/{nominal_resolution}/{frequency}/"
-                    )
-                    out_name = f"future_openburning_{base_file_name}"
-                    path = os.path.join(self.meta_dir_parent, out_dir)
-                else:
-                    out_dir = f"{project}/{experiment}/{variable}/{nominal_resolution}/{frequency}/"
-                    out_name = f"{project}_{base_file_name}"
-                    path = os.path.join(self.data_dir_parent, out_dir)
-
-                os.makedirs(path, exist_ok=True)
-                outfile = path + out_name
-
-                if (not self.overwrite) and os.path.isfile(outfile):
-                    self.logger.info(f"File {outfile} already exists, skipping.")
-                else:
-                    self.logger.info("Writing file")
-                    self.logger.info(outfile)
-                    chunk_size = RES_TO_CHUNKSIZE[frequency]
-                    dataset = dataset.chunk({"time": chunk_size})
-                    dataset.to_netcdf(outfile, engine="h5netcdf")
-
-    def download_from_model(
-        self,
-        project: str = "CMIP6",
-        default_frequency: str = "mon",
-        default_version: str = "latest",
-        default_grid_label: str = "gn",
-    ):
+    def download_from_model(self):
         """
         Function handling the download of all variables that are associated with a model's output.
 
@@ -761,12 +745,6 @@ class Downloader:
 
         If the constraints cannot be met, per default behaviour for the downloader to select first other
         available value
-
-        Args:
-            project (str): umbrella project id e.g. CMIPx
-            default_frequency (str): default frequency to download
-            default_version (str): data upload version, if 'latest', the newest version will get selected always
-            defaul_grid_label (str): default gridding method in which the data is provided
         """
 
         # iterate over respective vars
