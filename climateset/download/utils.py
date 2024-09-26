@@ -1,8 +1,10 @@
 import logging
 import re
+import subprocess
 
 import xarray as xr
 
+from climateset import RAW_DATA
 from climateset.utils import create_logger
 
 LOGGER = create_logger(__name__)
@@ -126,3 +128,96 @@ def filter_download_script(wget_script_content, start_year, end_year):
                 in_section = True
 
     return "\n".join(modified_script)
+
+
+# TODO add retry + logger so failure can be tracked
+def raw_download_process(model_or_institution_id, search_results, variable):
+    temp_download_path = RAW_DATA / f"{model_or_institution_id}/{variable}"
+    temp_download_path.mkdir(parents=True, exist_ok=True)
+    for result in search_results:
+        file_context = result.file_context()
+        wget_script_content = file_context.get_download_script()
+
+        # Optionally filter file list for download
+        # if self.start_year is not None and self.end_year is not None:
+        # wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
+
+        subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path)
+
+
+def get_grid_label(ctx, default_grid_label, logger=LOGGER):
+    grid_labels = list(ctx.facet_counts["grid_label"].keys())
+    logger.info(f"Available grid labels : {grid_labels}")
+    if default_grid_label is not None:
+        if default_grid_label in grid_labels:
+            logger.info(f"Choosing grid : {default_grid_label}")
+            grid_label = default_grid_label
+        else:
+            logger.info("Default grid label not available.")
+            grid_label = grid_labels[0]
+            logger.info(f"Choosing grid {grid_label} instead.")
+    else:
+        grid_label = ""
+    return grid_label
+
+
+def get_max_ensemble_member_number(df_model_source, experiments, model, logger=LOGGER):
+    if model is not None:
+        if model not in df_model_source["source_id"].tolist():
+            logger.info(f"Model {model} not supported.")
+            raise AttributeError
+        # extract member information
+        model_id = df_model_source.index[df_model_source["source_id"] == model].values
+        # get ensemble members per scenario
+        max_ensemble_members_list = df_model_source["num_ensemble_members"][model_id].values.tolist()[0].split(" ")
+        scenarios = df_model_source["scenarios"][model_id].values.tolist()[0].split(" ")
+        # create lookup
+        max_ensemble_members_lookup = {}
+        for s, m in zip(scenarios, max_ensemble_members_list):
+            max_ensemble_members_lookup[s] = int(m)
+        max_possible_member_number = min(
+            [max_ensemble_members_lookup[e] for e in experiments if e != "historical"]
+        )  # TODO fix historical
+    return max_possible_member_number
+
+
+def get_upload_version(ctx, preferred_version, logger=LOGGER):
+    version = ""
+    versions = list(ctx.facet_counts["version"].keys())
+    if not versions:
+        logger.info("No versions are available. Skipping.")
+        return version
+    logger.info(f"Available versions : {versions}")
+    if preferred_version:
+        # deal with different versions
+        if preferred_version == "latest":
+            version = versions[0]
+            logger.info(f"Choosing latest version: {version}")
+        else:
+            try:
+                version = versions[preferred_version]
+            except KeyError:
+                logger.info(f"Preferred version {preferred_version} does not exist.")
+                version = versions[0]
+                logger.info(f"Resuming with latest {version}:")
+    return version
+
+
+def get_frequency(ctx, default_frequency, logger=LOGGER):
+    if default_frequency is not None:
+        # choose default frequency if wanted
+        frequencies = list(ctx.facet_counts["frequency"].keys())
+        logger.info(f"Available frequencies : {frequencies}")
+
+        if default_frequency in frequencies:
+            frequency = default_frequency
+            logger.info(f"Choosing default frequency : {frequencies}")
+        else:
+            frequency = frequencies[0]
+            logger.info(
+                "Default frequency not available, choosing first available one instead: ",
+                frequency,
+            )
+    else:
+        frequency = ""
+    return frequency

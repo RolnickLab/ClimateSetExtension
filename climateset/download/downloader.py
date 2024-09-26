@@ -1,5 +1,4 @@
 import argparse
-import subprocess
 from typing import Union
 
 from pyesgf.search import SearchConnection
@@ -17,7 +16,12 @@ from climateset.download.constants.esgf_server import (  # RES_TO_CHUNKSIZE,
     VAR_SOURCE_LOOKUP,
 )
 from climateset.download.utils import (  # extract_target_mip_exp_name,; filter_download_script,; infer_nominal_resolution,
+    get_frequency,
+    get_grid_label,
+    get_max_ensemble_member_number,
     get_nominal_resolution,
+    get_upload_version,
+    raw_download_process,
 )
 from climateset.utils import create_logger, get_keys_from_value, get_yaml_config
 
@@ -95,24 +99,9 @@ class Downloader:
         self.start_year = start_year
         self.end_year = end_year
 
-        # check if model is supported
-        if model is not None:
-            if model not in df_model_source["source_id"].tolist():
-                self.logger.info(f"Model {model} not supported.")
-                raise AttributeError
-            # extract member information
-            model_id = df_model_source.index[df_model_source["source_id"] == model].values
-            # get ensemble members per scenario
-            max_ensemble_members_list = df_model_source["num_ensemble_members"][model_id].values.tolist()[0].split(" ")
-            scenarios = df_model_source["scenarios"][model_id].values.tolist()[0].split(" ")
-            # create lookup
-            max_ensemble_members_lookup = {}
-            for s, m in zip(scenarios, max_ensemble_members_list):
-                max_ensemble_members_lookup[s] = int(m)
-            max_possible_member_number = min(
-                [max_ensemble_members_lookup[e] for e in experiments if e != "historical"]
-            )  # TODO fix historical
+        max_possible_member_number = get_max_ensemble_member_number(df_model_source, experiments, model)
         # if taking all ensemble members
+
         if max_ensemble_members == -1:
             self.logger.info("Trying to take all ensemble members available.")
             self.max_ensemble_members = max_possible_member_number
@@ -131,21 +120,39 @@ class Downloader:
         # else:
         #     data_dir = str(ROOT_DIR) + "/data"
 
-        if variables is None:
-            variables = ["tas", "pr", "SO2_em_anthro", "BC_em_anthro"]
-        # take care of var mistype (node takes no spaces or '-' only '_')
-        variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
-        self.logger.info(f"Cleaned variables : {variables}")
-        for v in variables:
-            t = get_keys_from_value(VAR_SOURCE_LOOKUP, v, self.logger)
-            if t == "model":
-                self.model_vars.append(v)
-            elif t == "raw":
-                self.raw_vars.append(v)
+        self._generate_variables(variables)
 
-            else:
-                self.logger.info(f"WARNING: unknown source type for var {v}. Not supported. Skipping.")
+        self._generate_plain_emission_vars(download_biomassburning, plain_emission_vars)
 
+        self.download_metafiles = download_metafiles
+        self.download_biomass_burning = download_biomassburning
+
+        self.logger.info(f"Raw variables to download: {self.raw_vars}")
+        self.logger.info(f"Model predicted vars to download: {self.model_vars}")
+
+        if self.download_biomass_burning:
+            self.logger.info(f"Download biomass burning vars: {self.biomass_vars}")
+        if self.download_metafiles:
+            self.logger.info("Downloading meta vars:")
+            self.logger.info(self.meta_vars_percentage)
+            self.logger.info(self.meta_vars_share)
+
+        try:
+            self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
+            self.model_source_center = MODEL_SOURCES[self.model]["center"]
+        except KeyError:
+            self.model = next(iter(MODEL_SOURCES))
+            if model is not None:
+                self.logger.info(f"WARNING: Model {self.model} unknown. Using default instead.")
+                self.logger.info(f"Using : {self.model}")
+            # else None but we still need the links
+            self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
+            self.model_source_center = MODEL_SOURCES[self.model]["center"]
+
+        self.data_dir_parent = data_dir
+        self.meta_dir_parent = meta_dir
+
+    def _generate_plain_emission_vars(self, download_biomassburning, plain_emission_vars):
         if plain_emission_vars:
             # plain vars are biomass vars
             self.biomass_vars = self.raw_vars
@@ -192,33 +199,21 @@ class Downloader:
                 for ending in META_ENDINGS_SHAR
             ]
 
-        self.download_metafiles = download_metafiles
-        self.download_biomass_burning = download_biomassburning
+    def _generate_variables(self, variables):
+        if variables is None:
+            variables = ["tas", "pr", "SO2_em_anthro", "BC_em_anthro"]
+        # take care of var mistype (node takes no spaces or '-' only '_')
+        variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
+        self.logger.info(f"Cleaned variables : {variables}")
+        for v in variables:
+            t = get_keys_from_value(VAR_SOURCE_LOOKUP, v, self.logger)
+            if t == "model":
+                self.model_vars.append(v)
+            elif t == "raw":
+                self.raw_vars.append(v)
 
-        self.logger.info(f"Raw variables to download: {self.raw_vars}")
-        self.logger.info(f"Model predicted vars to download: {self.model_vars}")
-
-        if self.download_biomass_burning:
-            self.logger.info(f"Download biomass burning vars: {self.biomass_vars}")
-        if self.download_metafiles:
-            self.logger.info("Downloading meta vars:")
-            self.logger.info(self.meta_vars_percentage)
-            self.logger.info(self.meta_vars_share)
-
-        try:
-            self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
-            self.model_source_center = MODEL_SOURCES[self.model]["center"]
-        except KeyError:
-            self.model = next(iter(MODEL_SOURCES))
-            if model is not None:
-                self.logger.info(f"WARNING: Model {self.model} unknown. Using default instead.")
-                self.logger.info(f"Using : {self.model}")
-            # else None but we still need the links
-            self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
-            self.model_source_center = MODEL_SOURCES[self.model]["center"]
-
-        self.data_dir_parent = data_dir
-        self.meta_dir_parent = meta_dir
+            else:
+                self.logger.info(f"WARNING: unknown source type for var {v}. Not supported. Skipping.")
 
     # TODO Fix complexity issue
     # TODO Refactor download to use wget scripts instead of Opendap, and setup test case
@@ -228,7 +223,7 @@ class Downloader:
         experiment: str,
         project: str = "CMIP6",
         default_frequency: str = "mon",
-        default_version: str = "latest",
+        preferred_version: str = "latest",
         default_grid_label: str = "gn",
     ):
         """
@@ -240,8 +235,8 @@ class Downloader:
             experiment (str): experiment Id
             project (str): umbrella project id e.g. CMIPx
             default_frequency (str): default frequency to download
-            default_version (str): data upload version, if 'latest', the newest version will get selected always
-            defaul_grid_label (str): default gridding method in which the data is provided
+            preferred_version (str): data upload version, if 'latest', the newest version will get selected always
+            default_grid_label (str): default gridding method in which the data is provided
         """
         conn = SearchConnection(self.model_node_link, distrib=False)
 
@@ -272,16 +267,9 @@ class Downloader:
         )
 
         # dealing with grid labels
-        grid_labels = list(ctx.facet_counts["grid_label"].keys())
-        self.logger.info(f"Available grid labels : {grid_labels}")
-        if default_grid_label in grid_labels:
-            self.logger.info(f"Choosing grid : {default_grid_label}")
-            grid_label = default_grid_label
-        else:
-            self.logger.info("Default grid label not available.")
-            grid_label = grid_labels[0]
-            self.logger.info(f"Choosing grid {grid_label} instead.")
-        ctx = ctx.constrain(grid_label=grid_label)
+        grid_label = get_grid_label(ctx, default_grid_label)
+        if grid_label:
+            ctx = ctx.constrain(grid_label=grid_label)
 
         try:
             nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
@@ -331,46 +319,16 @@ class Downloader:
         for i, ensemble_member in enumerate(ensemble_member_final_list):
             self.logger.info(f"Ensembles member: {ensemble_member}")
             ctx = ctx_origin.constrain(variant_label=ensemble_member)
+            version = get_upload_version(ctx, preferred_version)
 
-            # pick a version
-            versions = list(ctx.facet_counts["version"].keys())
-
-            if not versions:
-                self.logger.info("No versions are available. Skipping.")
-                continue
-            self.logger.info(f"Available versions : {versions}")
-
-            if default_version == "latest":
-                version = versions[0]
-                self.logger.info(f"Choosing latest version : {versions}")
-            else:
-                try:
-                    version = versions[default_version]
-                except KeyError:
-                    self.logger.info(f"Preferred version {default_version} does not exist.")
-                    version = versions[0]
-                    self.logger.info(f"Resuming with latest version : {versions}")
-
-            ctx = ctx.constrain(version=version)
+            if version:
+                ctx = ctx.constrain(version=version)
 
             results = ctx.search()
 
             self.logger.info(f"Result len {len(results)}")
 
-            temp_download_path = RAW_DATA / f"{self.model}/{variable}"
-            temp_download_path.mkdir(parents=True, exist_ok=True)
-
-            for result in results:
-                fc = result.file_context()
-                wget_script_content = fc.get_download_script()
-
-                # # Optionally filter file list for download
-                # if self.start_year is not None and self.end_year is not None:
-                #     wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
-
-                subprocess.run(
-                    ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
-                )
+            raw_download_process(self.model, results, variable)
 
     # TODO: test, improve and cleanup download part
     def download_meta_historic_biomassburning_single_var(
@@ -379,7 +337,7 @@ class Downloader:
         institution_id: str,
         project="input4mips",
         frequency="mon",
-        version="latest",
+        preferred_version="latest",
         grid_label="gn",
     ):
         """
@@ -390,7 +348,7 @@ class Downloader:
             project (str): umbrella project
             institution_id (str): id of the institution that provides the data
             frequency (str): default frequency to download
-            version (str): data upload version, if 'latest', the newest version will get selected always
+            preferred_version (str): data upload version, if 'latest', the newest version will get selected always
             grid_label (str): default gridding method in which the data is provided
         """
         variable_id = variable.replace("_", "-")
@@ -418,24 +376,13 @@ class Downloader:
             nominal_resolution = "none"
         ctx = ctx.constrain(nominal_resolution=nominal_resolution)
 
-        versions = list(ctx.facet_counts["version"].keys())
-        self.logger.info(f"Available versions : {version}")
         ctx_origin_v = ctx
 
-        if version is not None:
-            # deal with different versions
-            if version == "latest":
-                version = versions[0]
-                self.logger.info(f"Choosing latest version : {versions}")
-            else:
-                try:
-                    version = versions[version]
-                except KeyError:
-                    self.logger.info(f"Preferred version {version} does not exist.")
-                    version = versions[0]
-                    self.logger.info(f"Resuming with latest version : {version}")
+        version = get_upload_version(ctx, preferred_version)
 
-        ctx = ctx_origin_v.constrain(version=version)
+        if preferred_version:
+            ctx = ctx_origin_v.constrain(version=version)
+
         results = ctx.search()
 
         self.logger.info(f"Result len  {len(results)}")
@@ -443,18 +390,7 @@ class Downloader:
         result_list = [r.file_context().search() for r in results]
         self.logger.info(f"List of results :\n{result_list}")
 
-        temp_download_path = RAW_DATA / f"{institution_id}/{variable}"
-        temp_download_path.mkdir(parents=True, exist_ok=True)
-
-        for result in results:
-            file_context = result.file_context()
-            wget_script_content = file_context.get_download_script()
-
-            # Optionally filter file list for download
-            # if self.start_year is not None and self.end_year is not None:
-            #     wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
-
-            subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path)
+        raw_download_process(institution_id, results, variable)
         #
         # files_list = temp_download_path.glob("*.nc")
         # self.logger.info(f"List of files downloaded : \n{files_list}")
@@ -544,7 +480,7 @@ class Downloader:
         project="input4mips",
         institution_id="PNNL-JGCRI",  # make sure that we have the correct data
         default_frequency="mon",
-        default_version="latest",
+        preferred_version="latest",
         default_grid_label="gn",
         save_to_meta=False,
     ):
@@ -556,8 +492,8 @@ class Downloader:
             project (str): umbrella project, here "input4mips"
             institution_id (str): id of the institution that provides the data
             default_frequency (str): default frequency to download
-            default_version (str): data upload version, if 'latest', the newest version will get selected always
-            defaul_grid_label (str): default gridding method in which the data is provided
+            preferred_version (str): data upload version, if 'latest', the newest version will get selected always
+            default_grid_label (str): default gridding method in which the data is provided
             save_to_meta (bool): if data should be saved to the meta folder instead of the input4mips folder
         """
         self.logger.info("Using download_raw_input_single_var() function")
@@ -575,19 +511,9 @@ class Downloader:
         )
 
         # dealing with grid labels
-        if default_grid_label is not None:
-            grid_labels = list(ctx.facet_counts["grid_label"].keys())
-            self.logger.info(f"Available grid labels : {grid_labels}")
-            if default_grid_label in grid_labels:
-                self.logger.info(f"Choosing grid : {default_grid_label}")
-                grid_label = default_grid_label
-            else:
-                self.logger.info("Default grid label not available.")
-                grid_label = grid_labels[0]
-                self.logger.info(f"Choosing grid {grid_label} instead.")
+        grid_label = get_grid_label(ctx, default_grid_label)
+        if grid_label:
             ctx = ctx.constrain(grid_label=grid_label)
-        else:
-            grid_label = ""
 
         # choose nominal resolution if existent
         try:
@@ -598,23 +524,9 @@ class Downloader:
             self.logger.info("No nominal resolution")
             nominal_resolution = "none"
 
-        if default_frequency is not None:
-            # choose default frequency if wanted
-            frequencies = list(ctx.facet_counts["frequency"].keys())
-            self.logger.info(f"Available frequencies : {frequencies}")
-
-            if default_frequency in frequencies:
-                frequency = default_frequency
-                self.logger.info(f"Choosing default frequency : {frequencies}")
-            else:
-                frequency = frequencies[0]
-                self.logger.info(
-                    "Default frequency not available, choosing first available one instead: ",
-                    frequency,
-                )
+        frequency = get_frequency(ctx, default_frequency)
+        if frequency:
             ctx = ctx.constrain(frequency=frequency)
-        else:
-            frequency = ""
 
         # target mip group
         mips_targets = list(ctx.facet_counts["target_mip"].keys())
@@ -624,48 +536,22 @@ class Downloader:
         self.logger.info("\n")
         if len(mips_targets) == 0:
             mips_targets = [None]
+
         for target in mips_targets:
             self.logger.info(f"Target mip: {target}")
-            if target is not None:
+            if target:
                 ctx = ctx_origin.constrain(target_mip=target)
 
-            versions = list(ctx.facet_counts["version"].keys())
-            self.logger.info(f"Available versions : {versions}")
             ctx_origin_v = ctx
 
-            if default_version is not None:
-                # deal with different versions
-                if default_version == "latest":
-                    version = versions[0]
-                    self.logger.info(f"Choosing latest version: {version}")
-                else:
-                    try:
-                        version = versions[default_version]
-                    except KeyError:
-                        self.logger.info(f"Preferred version {default_version} does not exist.")
-                        version = versions[0]
-                        self.logger.info(f"Resuming with latest {version}:")
-
+            version = get_upload_version(ctx, preferred_version)
+            if version:
                 ctx = ctx_origin_v.constrain(version=version)
 
             results = ctx.search()
-
             self.logger.info(f"Result len  {len(results)}")
 
-            temp_download_path = RAW_DATA / f"{institution_id}/{variable}"
-            temp_download_path.mkdir(parents=True, exist_ok=True)
-
-            for result in results:
-                file_context = result.file_context()
-                wget_script_content = file_context.get_download_script()
-
-                # Optionally filter file list for download
-                # if self.start_year is not None and self.end_year is not None:
-                # wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
-
-                subprocess.run(
-                    ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path
-                )
+            raw_download_process(institution_id, results, variable)
             #
             # files_list = temp_download_path.glob("*.nc")
             #
@@ -776,13 +662,6 @@ class Downloader:
 
         If the constraints cannot be met, the default behaviour for the downloader is to select first other
         available value.
-
-        Args:
-            project (str): umbrella project, in this case "input4mips"
-            institution_id (str): institution that provided the data
-            default_frequency (str): default frequency to download
-            default_version (str): data upload version, if 'latest', the newest version will get selected always
-            defaul_grid_label (str): default gridding method in which the data is provided
         """
         for v in self.raw_vars:
             if v.endswith("openburning"):
