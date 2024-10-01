@@ -273,6 +273,9 @@ class Downloader:
         if grid_label:
             ctx = ctx.constrain(grid_label=grid_label)
 
+        # TODO refactor nominal_resolution att to use get_nominal_resolution and fix discrepency of `smallest`
+        #  resolution
+        nominal_resolution = []
         try:
             nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
             self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
@@ -293,7 +296,8 @@ class Downloader:
         frequency = "mon"  # list(ctx.facet_counts['frequency'].keys())[-1]
         self.logger.info(f"choosing frequency : {frequency}")
 
-        ctx_origin = ctx.constrain(frequency=frequency, nominal_resolution=nominal_resolution)
+        if nominal_resolution:
+            ctx = ctx.constrain(frequency=frequency, nominal_resolution=nominal_resolution)
 
         variants = list(ctx.facet_counts["variant_label"].keys())
 
@@ -318,15 +322,15 @@ class Downloader:
                 self.logger.info("Skipping.")
                 return None
 
-        for i, ensemble_member in enumerate(ensemble_member_final_list):
+        for ensemble_member in ensemble_member_final_list:
             self.logger.info(f"Ensembles member: {ensemble_member}")
-            ctx = ctx_origin.constrain(variant_label=ensemble_member)
+            ctx_ensemble = ctx.constrain(variant_label=ensemble_member)
+
             version = get_upload_version(ctx, preferred_version)
-
             if version:
-                ctx = ctx.constrain(version=version)
+                ctx_ensemble = ctx_ensemble.constrain(version=version)
 
-            results = ctx.search()
+            results = ctx_ensemble.search()
 
             self.logger.info(f"Result len {len(results)}")
 
@@ -370,23 +374,15 @@ class Downloader:
             facets=facets,
         )
 
-        # choose nominal resolution if existent
-        try:
-            nominal_resolution = get_nominal_resolution(ctx)
-        except IndexError:
-            self.logger.info("No nominal resolution")
-            nominal_resolution = "none"
-        ctx = ctx.constrain(nominal_resolution=nominal_resolution)
-
-        ctx_origin_v = ctx
+        nominal_resolution = get_nominal_resolution(ctx)
+        if nominal_resolution:
+            ctx = ctx.constrain(nominal_resolution=nominal_resolution)
 
         version = get_upload_version(ctx, preferred_version)
-
-        if preferred_version:
-            ctx = ctx_origin_v.constrain(version=version)
+        if version:
+            ctx = ctx.constrain(version=version)
 
         results = ctx.search()
-
         self.logger.info(f"Result len  {len(results)}")
 
         result_list = [r.file_context().search() for r in results]
