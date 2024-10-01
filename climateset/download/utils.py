@@ -1,6 +1,7 @@
 import logging
 import re
 import subprocess
+import time
 
 import xarray as xr
 
@@ -134,33 +135,41 @@ def filter_download_script(wget_script_content, start_year, end_year):
     return "\n".join(modified_script)
 
 
-# TODO add retry + logger so failure can be tracked
-def _download_vars_process(temp_download_path, search_results):
+def _download_result(result, download_path, logger: logging.Logger = LOGGER):
+    max_retries = 3
+    delay = 1
+    for attempt in range(1, max_retries + 1):
+        try:
+            file_context = result.file_context()
+            wget_script_content = file_context.get_download_script()
+            subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=download_path)
+        except Exception as e:  # pylint: disable=W0718
+            logger.error(f"Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                time.sleep(delay)
+            else:
+                raise e
+
+
+def _download_process(temp_download_path, search_results, logger: logging.Logger = LOGGER):
     temp_download_path.mkdir(parents=True, exist_ok=True)
     for result in search_results:
-        file_context = result.file_context()
-        wget_script_content = file_context.get_download_script()
-
-        # Optionally filter file list for download
-        # if self.start_year is not None and self.end_year is not None:
-        # wget_script_content = filter_download_script(wget_script_content, self.start_year, self.end_year)
-
-        subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path)
+        _download_result(result=result, download_path=temp_download_path, logger=logger)
 
 
 def download_raw_input_variable(institution_id, search_results, variable):
     temp_download_path = RAW_DATA / f"raw_input_vars/{institution_id}/{variable}"
-    _download_vars_process(temp_download_path, search_results)
+    _download_process(temp_download_path, search_results)
 
 
 def download_model_variable(model_id, search_results, variable):
     temp_download_path = RAW_DATA / f"model_vars/{model_id}/{variable}"
-    _download_vars_process(temp_download_path, search_results)
+    _download_process(temp_download_path, search_results)
 
 
 def download_metadata_variable(institution_id, search_results, variable):
     temp_download_path = RAW_DATA / f"meta_vars/{institution_id}/{variable}"
-    _download_vars_process(temp_download_path, search_results)
+    _download_process(temp_download_path, search_results)
 
 
 def get_grid_label(ctx, default_grid_label, logger=LOGGER):
