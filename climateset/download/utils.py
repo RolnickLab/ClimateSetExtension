@@ -58,14 +58,18 @@ def get_nominal_resolution(ctx, logger: logging.Logger = LOGGER):
     Returns:
 
     """
-    nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-    logger.info(f"Available nominal resolution : {nominal_resolutions}")
+    nominal_resolution = ""
+    nominal_resolution_list = []
+    if "nominal_resolution" in ctx.facet_counts.keys():
+        nominal_resolution_list = list(ctx.facet_counts["nominal_resolution"].keys())
+        logger.info(f"Available nominal resolution : {nominal_resolution_list}")
+    if not nominal_resolution_list:
+        logger.warning("No nominal resolution")
+        return nominal_resolution
     # deal with multiple nominal resolutions, taking smallest one as default
-    if len(nominal_resolutions) > 1:
-        logger.info(
-            "Multiple nominal resolutions exist, choosing smallest_nominal resolution (trying), " "please do a check up"
-        )
-    nominal_resolution = nominal_resolutions[0]
+    if len(nominal_resolution_list) > 1:
+        logger.warning("Multiple nominal resolutions exist, will try to get smallest resolution.")
+    nominal_resolution = nominal_resolution_list[0]
     logger.info(f"Choosing nominal resolution : {nominal_resolution}")
     return nominal_resolution
 
@@ -131,8 +135,7 @@ def filter_download_script(wget_script_content, start_year, end_year):
 
 
 # TODO add retry + logger so failure can be tracked
-def raw_download_process(model_or_institution_id, search_results, variable):
-    temp_download_path = RAW_DATA / f"{model_or_institution_id}/{variable}"
+def _download_vars_process(temp_download_path, search_results):
     temp_download_path.mkdir(parents=True, exist_ok=True)
     for result in search_results:
         file_context = result.file_context()
@@ -145,19 +148,37 @@ def raw_download_process(model_or_institution_id, search_results, variable):
         subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=temp_download_path)
 
 
+def download_raw_input_variable(institution_id, search_results, variable):
+    temp_download_path = RAW_DATA / f"raw_input_vars/{institution_id}/{variable}"
+    _download_vars_process(temp_download_path, search_results)
+
+
+def download_model_variable(model_id, search_results, variable):
+    temp_download_path = RAW_DATA / f"model_vars/{model_id}/{variable}"
+    _download_vars_process(temp_download_path, search_results)
+
+
+def download_metadata_variable(institution_id, search_results, variable):
+    temp_download_path = RAW_DATA / f"meta_vars/{institution_id}/{variable}"
+    _download_vars_process(temp_download_path, search_results)
+
+
 def get_grid_label(ctx, default_grid_label, logger=LOGGER):
-    grid_labels = list(ctx.facet_counts["grid_label"].keys())
-    logger.info(f"Available grid labels : {grid_labels}")
-    if default_grid_label is not None:
-        if default_grid_label in grid_labels:
-            logger.info(f"Choosing grid : {default_grid_label}")
-            grid_label = default_grid_label
-        else:
-            logger.info("Default grid label not available.")
-            grid_label = grid_labels[0]
-            logger.info(f"Choosing grid {grid_label} instead.")
+    grid_label = ""
+    grid_label_list = []
+    if "grid_label" in ctx.facet_counts.keys():
+        grid_label_list = list(ctx.facet_counts["grid_label"].keys())
+        logger.info(f"Available grid labels : {grid_label_list}")
+    if not grid_label_list:
+        logger.warning("No grid labels found")
+        return grid_label
+    if default_grid_label and default_grid_label in grid_label_list:
+        logger.info(f"Choosing grid : {default_grid_label}")
+        grid_label = default_grid_label
     else:
-        grid_label = ""
+        logger.warning("Default grid label not available.")
+        grid_label = grid_label_list[0]
+        logger.info(f"Choosing grid {grid_label} instead.")
     return grid_label
 
 
@@ -181,11 +202,13 @@ def get_max_ensemble_member_number(df_model_source, experiments, model, logger=L
     return max_possible_member_number
 
 
-def get_upload_version(ctx, preferred_version, logger=LOGGER):
+def get_upload_version(context, preferred_version, logger=LOGGER):
     version = ""
-    versions = list(ctx.facet_counts["version"].keys())
+    versions = []
+    if "version" in context.facet_counts.keys():
+        versions = list(context.facet_counts["version"].keys())
     if not versions:
-        logger.info("No versions are available. Skipping.")
+        logger.warning("No versions are available. Skipping.")
         return version
     logger.info(f"Available versions : {versions}")
     if preferred_version:
@@ -197,27 +220,25 @@ def get_upload_version(ctx, preferred_version, logger=LOGGER):
             try:
                 version = versions[preferred_version]
             except KeyError:
-                logger.info(f"Preferred version {preferred_version} does not exist.")
+                logger.warning(f"Preferred version {preferred_version} does not exist.")
                 version = versions[0]
                 logger.info(f"Resuming with latest {version}:")
     return version
 
 
 def get_frequency(ctx, default_frequency, logger=LOGGER):
-    if default_frequency is not None:
-        # choose default frequency if wanted
-        frequencies = list(ctx.facet_counts["frequency"].keys())
-        logger.info(f"Available frequencies : {frequencies}")
-
-        if default_frequency in frequencies:
-            frequency = default_frequency
-            logger.info(f"Choosing default frequency : {frequencies}")
-        else:
-            frequency = frequencies[0]
-            logger.info(
-                "Default frequency not available, choosing first available one instead: ",
-                frequency,
-            )
+    frequency = ""
+    frequency_list = []
+    if "frequency" in ctx.facet_counts.keys():
+        frequency_list = list(ctx.facet_counts["frequency"].keys())
+        logger.warning(f"Available frequencies : {frequency_list}")
+    if not frequency_list:
+        logger.warning("No frequencies are available. Skipping")
+        return frequency
+    if default_frequency and default_frequency in frequency_list:
+        frequency = default_frequency
+        logger.info(f"Choosing default frequency : {frequency}")
     else:
-        frequency = ""
+        frequency = frequency_list[0]
+        logger.info(f"Default frequency not available, choosing first available one instead: {frequency}")
     return frequency

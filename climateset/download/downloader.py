@@ -16,12 +16,14 @@ from climateset.download.constants.esgf_server import (  # RES_TO_CHUNKSIZE,
     VAR_SOURCE_LOOKUP,
 )
 from climateset.download.utils import (  # extract_target_mip_exp_name,; filter_download_script,; infer_nominal_resolution,
+    download_metadata_variable,
+    download_model_variable,
+    download_raw_input_variable,
     get_frequency,
     get_grid_label,
     get_max_ensemble_member_number,
     get_nominal_resolution,
     get_upload_version,
-    raw_download_process,
 )
 from climateset.utils import create_logger, get_keys_from_value, get_yaml_config
 
@@ -328,7 +330,7 @@ class Downloader:
 
             self.logger.info(f"Result len {len(results)}")
 
-            raw_download_process(self.model, results, variable)
+            download_model_variable(self.model, results, variable)
 
     # TODO: test, improve and cleanup download part
     def download_meta_historic_biomassburning_single_var(
@@ -390,7 +392,7 @@ class Downloader:
         result_list = [r.file_context().search() for r in results]
         self.logger.info(f"List of results :\n{result_list}")
 
-        raw_download_process(institution_id, results, variable)
+        download_metadata_variable(institution_id, results, variable)
         #
         # files_list = temp_download_path.glob("*.nc")
         # self.logger.info(f"List of files downloaded : \n{files_list}")
@@ -509,50 +511,31 @@ class Downloader:
             institution_id=institution_id,
             facets=facets,
         )
-
-        # dealing with grid labels
         grid_label = get_grid_label(ctx, default_grid_label)
         if grid_label:
             ctx = ctx.constrain(grid_label=grid_label)
 
-        # choose nominal resolution if existent
-        try:
-            nominal_resolution = get_nominal_resolution(ctx)
-            ctx = ctx.constrain(nominal_resolution=nominal_resolution)
-
-        except IndexError:
-            self.logger.info("No nominal resolution")
-            nominal_resolution = "none"
+        nominal_resolution = get_nominal_resolution(ctx)
+        ctx = ctx.constrain(nominal_resolution=nominal_resolution)
 
         frequency = get_frequency(ctx, default_frequency)
         if frequency:
             ctx = ctx.constrain(frequency=frequency)
 
-        # target mip group
         mips_targets = list(ctx.facet_counts["target_mip"].keys())
         self.logger.info(f"Available target mips: {mips_targets}")
-        ctx_origin = ctx
-
-        self.logger.info("\n")
-        if len(mips_targets) == 0:
-            mips_targets = [None]
 
         for target in mips_targets:
-            self.logger.info(f"Target mip: {target}")
-            if target:
-                ctx = ctx_origin.constrain(target_mip=target)
-
-            ctx_origin_v = ctx
-
-            version = get_upload_version(ctx, preferred_version)
+            ctx_target = ctx.constrain(target_mip=target)
+            version = get_upload_version(ctx_target, preferred_version)
             if version:
-                ctx = ctx_origin_v.constrain(version=version)
+                ctx_target = ctx_target.constrain(version=version)
 
-            results = ctx.search()
+            results = ctx_target.search()
             self.logger.info(f"Result len  {len(results)}")
+            if len(results) > 0:
+                download_raw_input_variable(institution_id, results, variable)
 
-            raw_download_process(institution_id, results, variable)
-            #
             # files_list = temp_download_path.glob("*.nc")
             #
             # for f in files_list:
