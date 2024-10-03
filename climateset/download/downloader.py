@@ -158,7 +158,7 @@ class Downloader:
             ]
 
             self.raw_vars = [
-                variable + emmission_ending for variable in self.raw_vars for emmission_ending in EMISSIONS_ENDINGS
+                variable + emission_ending for variable in self.raw_vars for emission_ending in EMISSIONS_ENDINGS
             ]
             # be careful with CO2
             if "CO2_em_openburning" in self.raw_vars:
