@@ -10,12 +10,12 @@ from climateset.download.constants.data_constants import (
     META_ENDINGS_PRC,
     META_ENDINGS_SHAR,
 )
-from climateset.download.constants.esgf_server import (  # RES_TO_CHUNKSIZE,
+from climateset.download.constants.esgf_server import (
     MODEL_SOURCES,
     SUPPORTED_EXPERIMENTS,
     VAR_SOURCE_LOOKUP,
 )
-from climateset.download.utils import (  # extract_target_mip_exp_name,; filter_download_script,; infer_nominal_resolution,
+from climateset.download.utils import (
     download_metadata_variable,
     download_model_variable,
     download_raw_input_variable,
@@ -102,7 +102,6 @@ class Downloader:
         self.end_year = end_year
 
         max_possible_member_number = get_max_ensemble_member_number(df_model_source, experiments, model)
-        # if taking all ensemble members
 
         if max_ensemble_members == -1:
             self.logger.info("Trying to take all ensemble members available.")
@@ -114,31 +113,18 @@ class Downloader:
             self.max_ensemble_members = max_possible_member_number
         self.logger.info(f"Downloading data for {self.max_ensemble_members} members.")
 
-        # determine if we are on a slurm cluster cluster = "none" if "SLURM_TMPDIR" in
-        # os.environ: cluster = "slurm"
-        #
-        # if cluster == "slurm":
-        #     data_dir=f"{os.environ['SLURM_TMPDIR']}/causalpaca/data/"
-        # else:
-        #     data_dir = str(ROOT_DIR) + "/data"
-
         self._generate_variables(variables)
-
         self._generate_plain_emission_vars(download_biomassburning, plain_emission_vars)
+        self.logger.info(f"Raw variables to download: {self.raw_vars}")
+        self.logger.info(f"Model predicted vars to download: {self.model_vars}")
 
         self.download_metafiles = download_metafiles
         self.download_biomass_burning = download_biomassburning
 
-        self.logger.info(f"Raw variables to download: {self.raw_vars}")
-        self.logger.info(f"Model predicted vars to download: {self.model_vars}")
-
         if self.download_biomass_burning:
             self.logger.info(f"Download biomass burning vars: {self.biomass_vars}")
         if self.download_metafiles:
-            self.logger.info("Downloading meta vars:")
-            self.logger.info(self.meta_vars_percentage)
-            self.logger.info(self.meta_vars_share)
-
+            self.logger.info(f"Downloading meta vars:\n\t{self.meta_vars_percentage}\n\t{self.meta_vars_share}")
         try:
             self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
             self.model_source_center = MODEL_SOURCES[self.model]["center"]
@@ -171,14 +157,15 @@ class Downloader:
                 for ending in META_ENDINGS_SHAR
             ]
 
-            # create var names from emissions
-            self.raw_vars = [v + e for v in self.raw_vars for e in EMISSIONS_ENDINGS]
+            self.raw_vars = [
+                variable + emmission_ending for variable in self.raw_vars for emmission_ending in EMISSIONS_ENDINGS
+            ]
             # be careful with CO2
             if "CO2_em_openburning" in self.raw_vars:
                 self.raw_vars.remove("CO2_em_openburning")
         else:
             # get plain input4mips vars = biomass vars for historical
-            self.biomass_vars = list(set([v.split("_")[0] for v in self.raw_vars]))
+            self.biomass_vars = list({v.split("_")[0] for v in self.raw_vars})
             # remove biomass vars from normal raw vars list
             for b in self.biomass_vars:
                 try:
@@ -246,18 +233,7 @@ class Downloader:
             "project,experiment_id,source_id,variable,frequency,variant_label,variable, nominal_resolution, "
             "version, grid_label, experiment_id"
         )
-        """"
 
-        # extracting available facets
-        ctx = conn.new_context(project=project, source_id=self.model)
-        available_facets=ctx.facet_counts
-        for k in available_facets.keys():
-            self.logger.info(f"\n facet {k}")
-            vs=[str(v) for v in available_facets[k].keys()]
-            self.logger.info(vs)
-        raise RuntimeError
-
-        """
         self.logger.info("Using download_from_model_single_var() function")
 
         ctx = conn.new_context(
@@ -273,38 +249,21 @@ class Downloader:
         if grid_label:
             ctx = ctx.constrain(grid_label=grid_label)
 
-        # TODO refactor nominal_resolution att to use get_nominal_resolution and fix discrepency of `smallest`
-        #  resolution
-        nominal_resolution = []
-        try:
-            nominal_resolutions = list(ctx.facet_counts["nominal_resolution"].keys())
-            self.logger.info(f"Available nominal resolution : {nominal_resolutions}")
-            #  deal with multipl nom resolutions availabe
-            if len(nominal_resolutions) > 1:
-                self.logger.info(
-                    "Multiple nominal resolutions exist, choosing smallest_nominal resolution (trying), "
-                    "please do a check up"
-                )
-
-            nominal_resolution = nominal_resolutions[-1]
-            self.logger.info(f"Choosing nominal resolution : {nominal_resolution}")
-        except IndexError:
-            self.logger.info("No nominal resolution")
-
-        # dealing with frequencies
-        self.logger.info(f"Available frequencies : {ctx.facet_counts['frequency'].keys()}")
-        frequency = "mon"  # list(ctx.facet_counts['frequency'].keys())[-1]
-        self.logger.info(f"choosing frequency : {frequency}")
-
+        nominal_resolution = get_nominal_resolution(ctx)
         if nominal_resolution:
-            ctx = ctx.constrain(frequency=frequency, nominal_resolution=nominal_resolution)
+            ctx = ctx.constrain(nominal_resolution=nominal_resolution)
+
+        frequency = get_frequency(ctx, default_frequency)
+        if frequency:
+            ctx = ctx.constrain(frequency=frequency)
 
         variants = list(ctx.facet_counts["variant_label"].keys())
 
         self.logger.info(f"Available variants : {variants}\n")
         self.logger.info(f"Length : {len(variants)}")
 
-        if self.ensemble_members is None:
+        # TODO refactor logic of if/else
+        if not self.ensemble_members:
             if self.max_ensemble_members > len(variants):
                 self.logger.info("Less ensemble members available than maximum number desired. Including all variants.")
                 ensemble_member_final_list = variants
@@ -476,7 +435,7 @@ class Downloader:
         self,
         variable,
         project="input4mips",
-        institution_id="PNNL-JGCRI",  # make sure that we have the correct data
+        institution_id="PNNL-JGCRI",
         default_frequency="mon",
         preferred_version="latest",
         default_grid_label="gn",
@@ -495,11 +454,9 @@ class Downloader:
             save_to_meta (bool): if data should be saved to the meta folder instead of the input4mips folder
         """
         self.logger.info("Using download_raw_input_single_var() function")
-        conn = SearchConnection(self.model_node_link, distrib=False)
 
         facets = "project,frequency,variable,nominal_resolution,version,target_mip,grid_label"
-
-        # basic constraining (project, var, institution)
+        conn = SearchConnection(self.model_node_link, distrib=False)
 
         ctx = conn.new_context(
             project=project,
@@ -507,6 +464,7 @@ class Downloader:
             institution_id=institution_id,
             facets=facets,
         )
+
         grid_label = get_grid_label(ctx, default_grid_label)
         if grid_label:
             ctx = ctx.constrain(grid_label=grid_label)
@@ -568,18 +526,18 @@ class Downloader:
             #     nominal_resolution = nominal_resolution.strip()
             #     nominal_resolution = nominal_resolution.replace(" ", "_")
             #     # Check whether the specified path exists or not
-            #     base_file_name = f"{experiment}_{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
+            #     base_filename = f"{experiment}_{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
             #     if save_to_meta:
             #         # if meta, we have future openburning stuff
             #
             #         out_dir = (
             #             f"future-openburning/{experiment}/{variable.split('_')[0]}/{nominal_resolution}/{frequency}/"
             #         )
-            #         out_name = f"future_openburning_{base_file_name}"
+            #         out_name = f"future_openburning_{base_filename}"
             #         path = os.path.join(self.meta_dir_parent, out_dir)
             #     else:
             #         out_dir = f"{project}/{experiment}/{variable}/{nominal_resolution}/{frequency}/"
-            #         out_name = f"{project}_{base_file_name}"
+            #         out_name = f"{project}_{base_filename}"
             #         path = os.path.join(self.data_dir_parent, out_dir)
             #
             #     os.makedirs(path, exist_ok=True)
@@ -613,18 +571,18 @@ class Downloader:
         """
 
         # iterate over respective vars
-        for v in self.model_vars:
-            self.logger.info(f"Downloading data for variable: {v}")
+        for variable in self.model_vars:
+            self.logger.info(f"Downloading data for variable: {variable}")
             # iterate over experiments
-            for e in self.experiments:
+            for experiment in self.experiments:
                 # check if experiment is availabe
-                if e in SUPPORTED_EXPERIMENTS:
-                    self.logger.info(f"Downloading data for experiment: {e}")
-                    self.download_from_model_single_var(v, e)
+                if experiment in SUPPORTED_EXPERIMENTS:
+                    self.logger.info(f"Downloading data for experiment: {experiment}")
+                    self.download_from_model_single_var(variable, experiment)
                 else:
                     self.logger.info(
-                        f"Chosen experiment {e} not supported. All supported experiments: {SUPPORTED_EXPERIMENTS}. "
-                        "Skipping."
+                        f"Chosen experiment {experiment} not supported. All supported experiments: "
+                        f"{SUPPORTED_EXPERIMENTS}. Skipping."
                     )
 
     def download_raw_input(self):
@@ -642,28 +600,28 @@ class Downloader:
         If the constraints cannot be met, the default behaviour for the downloader is to select first other
         available value.
         """
-        for v in self.raw_vars:
-            if v.endswith("openburning"):
+        for variable in self.raw_vars:
+            if variable.endswith("openburning"):
                 institution_id = "IAMC"
             else:
                 institution_id = "PNNL-JGCRI"
-            self.logger.info(f"Downloading data for variable: {v}")
-            self.download_raw_input_single_var(v, institution_id=institution_id)
+            self.logger.info(f"Downloading data for variable: {variable}")
+            self.download_raw_input_single_var(variable, institution_id=institution_id)
 
         # if download historical + openburning
         if self.download_biomass_burning & ("historical" in self.experiments):
-            for v in self.biomass_vars:
-                self.logger.info(f"Downloading biomassburing data for variable: {v}")
-                self.download_raw_input_single_var(v, institution_id="VUA")
+            for variable in self.biomass_vars:
+                self.logger.info(f"Downloading biomassburing data for variable: {variable}")
+                self.download_raw_input_single_var(variable, institution_id="VUA")
 
         if self.download_metafiles:
-            for v in self.meta_vars_percentage:
+            for variable in self.meta_vars_percentage:
                 # percentage are historic and have no scenarios
-                self.logger.info(f"Downloading meta percentage data for variable: {v}")
-                self.download_meta_historic_biomassburning_single_var(variable=v, institution_id="VUA")
-            for v in self.meta_vars_share:
-                self.logger.info(f"Downloading meta openburning share data for variable: {v}")
-                self.download_raw_input_single_var(v, institution_id="IAMC", save_to_meta=True)
+                self.logger.info(f"Downloading meta percentage data for variable: {variable}")
+                self.download_meta_historic_biomassburning_single_var(variable=variable, institution_id="VUA")
+            for variable in self.meta_vars_share:
+                self.logger.info(f"Downloading meta openburning share data for variable: {variable}")
+                self.download_raw_input_single_var(variable, institution_id="IAMC", save_to_meta=True)
 
 
 if __name__ == "__main__":
@@ -676,8 +634,8 @@ if __name__ == "__main__":
 
     try:
         models = cfg["models"]
-    except Exception as error:
-        cli_logger.warning(f"Caught the following exception but continuing : {error}")
+    except Exception as e:
+        cli_logger.warning(f"Caught the following exception but continuing : {e}")
         cli_logger.info("No climate models specified. Assuming only input4mips data should be downloaded.")
         models = [None]
     downloader_kwargs = cfg["downloader_kwargs"]

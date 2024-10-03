@@ -25,7 +25,7 @@ def extract_target_mip_exp_name(filename: str, target_mip: str, logger: logging.
     year_end = filename.split("_")[-1].split("-")[1].split(".")[0][:4]
     # logger.info(f'years from {year_from} to {year_end}')
 
-    if (target_mip == "ScenarioMIP") or (target_mip == "DAMIP"):
+    if target_mip in ["ScenarioMIP", "DAMIP"]:
         # extract ssp experiment from file name
         experiment = f"ssp{filename.split('ssp')[-1][:3]}"
         if "covid" in filename:
@@ -120,7 +120,6 @@ def filter_download_script(wget_script_content, start_year, end_year):
                 in_section = False
                 finished = True
                 modified_script.append(line)
-                continue
             else:
                 result = re.search(r"(\d{4})(\d{2})-(\d{4})(\d{2})\.nc", line)
                 file_start = result.group(1)
@@ -142,7 +141,9 @@ def _download_result(result, download_path, logger: logging.Logger = LOGGER):
         try:
             file_context = result.file_context()
             wget_script_content = file_context.get_download_script()
-            subprocess.run(["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=download_path)
+            subprocess.run(
+                ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=download_path, check=False
+            )
         except Exception as e:  # pylint: disable=W0718
             logger.error(f"Attempt {attempt} failed: {e}")
             if attempt < max_retries:
@@ -205,8 +206,9 @@ def get_max_ensemble_member_number(df_model_source, experiments, model, logger=L
         max_ensemble_members_lookup = {}
         for s, m in zip(scenarios, max_ensemble_members_list):
             max_ensemble_members_lookup[s] = int(m)
+        filtered_experiments = (e for e in experiments if e != "historical")
         max_possible_member_number = min(
-            [max_ensemble_members_lookup[e] for e in experiments if e != "historical"]
+            max_ensemble_members_lookup[e] for e in filtered_experiments
         )  # TODO fix historical
     return max_possible_member_number
 
