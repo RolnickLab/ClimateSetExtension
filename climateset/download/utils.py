@@ -144,6 +144,7 @@ def _download_result(result, download_path, logger: logging.Logger = LOGGER):
             subprocess.run(
                 ["bash", "-c", wget_script_content, "download", "-s"], shell=False, cwd=download_path, check=False
             )
+            break
         except Exception as e:  # pylint: disable=W0718
             logger.error(f"Attempt {attempt} failed: {e}")
             if attempt < max_retries:
