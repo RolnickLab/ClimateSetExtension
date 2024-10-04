@@ -49,11 +49,11 @@ def extract_target_mip_exp_name(filename: str, target_mip: str, logger: logging.
     return experiment
 
 
-def get_nominal_resolution(ctx, logger: logging.Logger = LOGGER):
+def get_nominal_resolution(context, logger: logging.Logger = LOGGER):
     """
 
     Args:
-        ctx:
+        context:
         logger:
 
     Returns:
@@ -61,8 +61,8 @@ def get_nominal_resolution(ctx, logger: logging.Logger = LOGGER):
     """
     nominal_resolution = ""
     nominal_resolution_list = []
-    if "nominal_resolution" in ctx.facet_counts.keys():
-        nominal_resolution_list = list(ctx.facet_counts["nominal_resolution"].keys())
+    if "nominal_resolution" in context.facet_counts.keys():
+        nominal_resolution_list = list(context.facet_counts["nominal_resolution"].keys())
         logger.info(f"Available nominal resolution : {nominal_resolution_list}")
     if not nominal_resolution_list:
         logger.warning("No nominal resolution")
@@ -174,11 +174,11 @@ def download_metadata_variable(institution_id, search_results, variable):
     _download_process(temp_download_path, search_results)
 
 
-def get_grid_label(ctx, default_grid_label, logger=LOGGER):
+def get_grid_label(context, default_grid_label, logger=LOGGER):
     grid_label = ""
     grid_label_list = []
-    if "grid_label" in ctx.facet_counts.keys():
-        grid_label_list = list(ctx.facet_counts["grid_label"].keys())
+    if "grid_label" in context.facet_counts.keys():
+        grid_label_list = list(context.facet_counts["grid_label"].keys())
         logger.info(f"Available grid labels : {grid_label_list}")
     if not grid_label_list:
         logger.warning("No grid labels found")
@@ -238,12 +238,12 @@ def get_upload_version(context, preferred_version, logger=LOGGER):
     return version
 
 
-def get_frequency(ctx, default_frequency, logger=LOGGER):
+def get_frequency(context, default_frequency, logger=LOGGER):
     frequency = ""
     frequency_list = []
-    if "frequency" in ctx.facet_counts.keys():
-        frequency_list = list(ctx.facet_counts["frequency"].keys())
-        logger.warning(f"Available frequencies : {frequency_list}")
+    if "frequency" in context.facet_counts.keys():
+        frequency_list = list(context.facet_counts["frequency"].keys())
+        logger.info(f"Available frequencies : {frequency_list}")
     if not frequency_list:
         logger.warning("No frequencies are available. Skipping")
         return frequency
@@ -254,3 +254,16 @@ def get_frequency(ctx, default_frequency, logger=LOGGER):
         frequency = frequency_list[0]
         logger.info(f"Default frequency not available, choosing first available one instead: {frequency}")
     return frequency
+
+
+def _handle_base_search_constraints(ctx, default_frequency, default_grid_label):
+    grid_label = get_grid_label(context=ctx, default_grid_label=default_grid_label)
+    if grid_label:
+        ctx = ctx.constrain(grid_label=grid_label)
+    nominal_resolution = get_nominal_resolution(context=ctx)
+    if nominal_resolution:
+        ctx = ctx.constrain(nominal_resolution=nominal_resolution)
+    frequency = get_frequency(context=ctx, default_frequency=default_frequency)
+    if frequency:
+        ctx = ctx.constrain(frequency=frequency)
+    return ctx
