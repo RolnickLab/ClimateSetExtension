@@ -2,6 +2,7 @@ import logging
 import pathlib
 from typing import Union
 
+import pandas as pd
 from pyesgf.search import SearchConnection
 
 from climateset import META_DATA, RAW_DATA
@@ -101,25 +102,24 @@ class Downloader:
         self.overwrite = overwrite
         self.download_metafiles = download_metafiles
         self.download_biomass_burning = download_biomassburning
+        self.plain_emission_vars = plain_emission_vars
         self.start_year = start_year
         self.end_year = end_year
 
         # Args processing
-        self._hande_max_possible_member_number(
-            df_model_source=DATA_CSV, experiments=experiments, max_ensemble_members=max_ensemble_members, model=model
-        )
+        self._hande_max_possible_member_number(df_model_source=DATA_CSV, max_ensemble_members=max_ensemble_members)
         self._handle_variables(
-            download_biomassburning=download_biomassburning,
-            plain_emission_vars=plain_emission_vars,
             variables=variables,
         )
-        self._handle_model_params(model=model)
+        self._handle_model_params()
 
     #
     # Internal helper functions
     #
-    def _hande_max_possible_member_number(self, df_model_source, experiments, max_ensemble_members, model):
-        max_possible_member_number = get_max_ensemble_member_number(df_model_source, experiments, model)
+    def _hande_max_possible_member_number(self, df_model_source: pd.DataFrame, max_ensemble_members: int):
+        max_possible_member_number = get_max_ensemble_member_number(
+            df_model_source=df_model_source, experiments=self.experiments, model=self.model
+        )
         if max_ensemble_members == -1:
             self.logger.info("Trying to take all ensemble members available.")
             self.max_ensemble_members = max_possible_member_number
@@ -130,9 +130,9 @@ class Downloader:
             self.max_ensemble_members = max_possible_member_number
         self.logger.info(f"Downloading data for {self.max_ensemble_members} members.")
 
-    def _handle_variables(self, download_biomassburning, plain_emission_vars, variables):
-        self._generate_variables(variables)
-        self._generate_plain_emission_vars(download_biomassburning, plain_emission_vars)
+    def _handle_variables(self, variables: list[str]):
+        self._generate_variables(variables=variables)
+        self._generate_plain_emission_vars()
         self.logger.info(f"Raw variables to download: {self.raw_vars}")
         self.logger.info(f"Model predicted vars to download: {self.model_vars}")
         if self.download_biomass_burning:
@@ -140,21 +140,21 @@ class Downloader:
         if self.download_metafiles:
             self.logger.info(f"Downloading meta vars:\n\t{self.meta_vars_percentage}\n\t{self.meta_vars_share}")
 
-    def _handle_model_params(self, model):
+    def _handle_model_params(self):
         try:
             self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
             self.model_source_center = MODEL_SOURCES[self.model]["center"]
         except KeyError:
             self.model = next(iter(MODEL_SOURCES))
-            if model is not None:
+            if self.model is not None:
                 self.logger.info(f"WARNING: Model {self.model} unknown. Using default instead.")
                 self.logger.info(f"Using : {self.model}")
             # else None but we still need the links
             self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
             self.model_source_center = MODEL_SOURCES[self.model]["center"]
 
-    def _generate_plain_emission_vars(self, download_biomassburning, plain_emission_vars):
-        if plain_emission_vars:
+    def _generate_plain_emission_vars(self):
+        if self.plain_emission_vars:
             # plain vars are biomass vars
             self.biomass_vars = self.raw_vars
             self.meta_vars_percentage = [
@@ -186,8 +186,6 @@ class Downloader:
                 except Exception as error:
                     self.logger.warning(f"Caught the following exception but continuing : {error}")
 
-            self.download_biomass_burning = download_biomassburning
-
             self.meta_vars_percentage = [
                 biomass_var + ending
                 for biomass_var in self.biomass_vars
@@ -201,7 +199,7 @@ class Downloader:
                 for ending in META_ENDINGS_SHAR
             ]
 
-    def _generate_variables(self, variables):
+    def _generate_variables(self, variables: list[str]):
         if variables is None:
             variables = ["tas", "pr", "SO2_em_anthro", "BC_em_anthro"]
         # take care of var mistype (node takes no spaces or '-' only '_')
