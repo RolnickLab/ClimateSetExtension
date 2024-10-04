@@ -3,6 +3,7 @@ import re
 import subprocess
 import time
 
+import pandas as pd
 import xarray as xr
 
 from climateset import RAW_DATA
@@ -193,7 +194,7 @@ def get_grid_label(context, default_grid_label, logger=LOGGER):
     return grid_label
 
 
-def get_max_ensemble_member_number(df_model_source, experiments, model, logger=LOGGER):
+def get_max_ensemble_member_number(df_model_source: pd.DataFrame, experiments: list[str], model: str, logger=LOGGER):
     if model is not None:
         if model not in df_model_source["source_id"].tolist():
             logger.info(f"Model {model} not supported.")
