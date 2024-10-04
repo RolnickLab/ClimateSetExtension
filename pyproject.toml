@@ -23,6 +23,7 @@ xarray = "^2024.5.0"
 esgf-pyclient = "^0.3.1"
 myproxyclient = "^2.1.1"
 h5netcdf = "^1.3.0"
+typer = "^0.12.5"
 
 [tool.poetry.group.secondary.dependencies]
 jinja2 = ">=3.1.4"
@@ -53,6 +54,7 @@ build-backend = "poetry.core.masonry.api"
 # Scripts
 #
 [tool.poetry.scripts]
+climateset = "climateset.cli:app"
 
 #
 # Tools
