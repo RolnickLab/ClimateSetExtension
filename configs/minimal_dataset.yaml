@@ -1,4 +1,4 @@
-models: ["FGOALS-g3"]
+models: ["NorESM2-LM"]
 downloader_kwargs:
   variables: ["tas", "CH4", "CO2"]
   experiments: ["historical", "ssp126"]
