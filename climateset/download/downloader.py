@@ -615,7 +615,7 @@ def download_from_config_file(config: str, logger: logging.Logger = LOGGER):
         config = get_yaml_config(config)
     try:
         models = config["models"]
-    except Exception as e:
+    except KeyError as e:
         logger.warning(f"Caught the following exception but continuing : {e}")
         logger.info("No climate models specified. Assuming only input4mips data should be downloaded.")
         models = [None]
