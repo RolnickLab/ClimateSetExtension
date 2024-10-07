@@ -59,6 +59,12 @@ def mock_model_single_var():
         yield mock_model
 
 
+@pytest.fixture()
+def mock_subprocess_run():
+    with patch(SUBPROCESS_RUN) as mock_subprocess_run:
+        yield mock_subprocess_run
+
+
 @pytest.fixture
 def simple_downloader_object():
     config_source = MINIMAL_DATASET_CONFIG_PATH
@@ -133,3 +139,68 @@ def test_download_from_config_file(
     assert mock_raw_input.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
     assert mock_meta_input.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
     assert mock_model.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
+
+
+def _assert_content_is_in_wget_script(download_subprocess, f):
+    # This seems very obscure, so here's what's happening,
+    # With the provided inputs, there should be only 1 call.
+    # We then access the call's arguments. We are interested in
+    # the content of the wget script that is generated, and we
+    # want to make sure that for there inputs, we get the same files
+    call_list = download_subprocess.call_args_list
+    first_and_only_call = call_list[0]
+    call_arguments = first_and_only_call.args[0]
+    wget_script_content = call_arguments[2]
+    assert f in wget_script_content
+
+
+def test_download_raw_input_single_var(simple_downloader_object, mock_subprocess_run):
+    download_subprocess = mock_subprocess_run
+    simple_downloader_object.download_raw_input_single_var(variable="CO2_em_anthro", institution_id="PNNL-JGCRI")
+
+    expected_files = [
+        "CO2-em-anthro_input4MIPs_emissions_CMIP_CEDS-2017-05-18_gn_175001-179912.nc",
+        "CO2-em-anthro_input4MIPs_emissions_CMIP_CEDS-2017-05-18_gn_180001-184912.nc",
+        "CO2-em-anthro_input4MIPs_emissions_CMIP_CEDS-2017-05-18_gn_185001-185012.nc",
+        "CO2-em-anthro_input4MIPs_emissions_CMIP_CEDS-2017-05-18_gn_185101-189912.nc",
+        "CO2-em-anthro_input4MIPs_emissions_CMIP_CEDS-2017-05-18_gn_190001-194912.nc",
+        "CO2-em-anthro_input4MIPs_emissions_CMIP_CEDS-2017-05-18_gn_195001-199912.nc",
+        "CO2-em-anthro_input4MIPs_emissions_CMIP_CEDS-2017-05-18_gn_200001-201412.nc",
+    ]
+    download_subprocess.assert_called_once()
+    for f in expected_files:
+        _assert_content_is_in_wget_script(download_subprocess, f)
+
+
+def test_download_meta_historic_biomassburning_single_var(simple_downloader_object, mock_subprocess_run):
+    download_subprocess = mock_subprocess_run
+    simple_downloader_object.download_meta_historic_biomassburning_single_var(
+        variable="CH4_percentage_AGRI", institution_id="VUA"
+    )
+
+    expected_files = [
+        "CH4-percentage-AGRI-em-biomassburning_input4MIPs_emissions_CMIP_VUA-CMIP-BB4CMIP6-1-2_gn_175001-201512.nc"
+    ]
+    download_subprocess.assert_called_once()
+    for f in expected_files:
+        _assert_content_is_in_wget_script(download_subprocess, f)
+
+
+def test_download_from_model_single_var(simple_downloader_object, mock_subprocess_run):
+    download_subprocess = mock_subprocess_run
+    simple_downloader_object.download_from_model_single_var(variable="tas", experiment="ssp126")
+
+    expected_files = [
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_201501-202012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_202101-203012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_203101-204012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_204101-205012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_205101-206012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_206101-207012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_207101-208012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_208101-209012.nc",
+        "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_209101-210012.nc",
+    ]
+    download_subprocess.assert_called_once()
+    for f in expected_files:
+        _assert_content_is_in_wget_script(download_subprocess, f)
