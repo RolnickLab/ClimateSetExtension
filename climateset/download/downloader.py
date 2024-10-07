@@ -5,9 +5,8 @@ from typing import Union
 import pandas as pd
 from pyesgf.search import SearchConnection
 
-from climateset import META_DATA, RAW_DATA
+from climateset import RAW_DATA
 from climateset.download.constants.data_constants import (
-    DATA_CSV,
     EMISSIONS_ENDINGS,
     META_ENDINGS_PRC,
     META_ENDINGS_SHAR,
@@ -23,6 +22,7 @@ from climateset.download.utils import (
     download_model_variable,
     download_raw_input_variable,
     get_max_ensemble_member_number,
+    get_select_model_scenarios,
     get_upload_version,
 )
 from climateset.utils import create_logger, get_keys_from_value, get_yaml_config
@@ -44,16 +44,12 @@ class Downloader:
         experiments: list[str] = None,  # sub-selection of ClimateBench default
         variables: list[str] = None,
         data_dir: str = RAW_DATA,
-        meta_dir: str = META_DATA,
         max_ensemble_members: int = 10,  # if -1 take all
         ensemble_members: list[str] = None,  # preferred ensemble members used, if None not considered
         overwrite: bool = False,  # flag if files should be overwritten
         download_biomassburning: bool = True,  # get biomassburning data for input4mips
         download_metafiles: bool = True,  # get input4mips meta files
-        plain_emission_vars: bool = True,  # specifies if plain variables for emissions are given and rest is inferred
-        # or if variables are specified
-        start_year: int = None,
-        end_year: int = None,
+        use_plain_emission_vars: bool = True,  # specifies if plain variables are given and rest is inferred
         logger: logging.Logger = LOGGER,
     ):
         """
@@ -74,9 +70,9 @@ class Downloader:
         """
         # Args init
         self.logger = logger
-        self.model = model
-        self.model_node_link = ""
-        self.model_source_center = ""
+        self.model: str = model
+        self.model_node_link: str = ""
+        self.model_source_center: str = ""
         if experiments is None:
             experiments = [
                 "historical",
@@ -88,26 +84,25 @@ class Downloader:
             ]
         # TODO: have a list of supported experiments before trying to look for them on the node
         #  to reduce computation cost
-        self.experiments = experiments
-        self.raw_vars = []
-        self.model_vars = []
-        self.biomass_vars = []
-        self.meta_vars_percentage = []
-        self.meta_vars_share = []
-        self.data_dir_parent = data_dir
-        self.meta_dir_parent = meta_dir
-        self.ensemble_members = ensemble_members
-        self.max_ensemble_members = max_ensemble_members
-        self.year_max = 2100
-        self.overwrite = overwrite
-        self.download_metafiles = download_metafiles
-        self.download_biomass_burning = download_biomassburning
-        self.plain_emission_vars = plain_emission_vars
-        self.start_year = start_year
-        self.end_year = end_year
+        self.experiments: list[str] = experiments
+        self.raw_vars: list[str] = []
+        self.model_vars: list[str] = []
+        self.biomass_vars: list[str] = []
+        self.meta_vars_percentage: list[str] = []
+        self.meta_vars_share: list[str] = []
+        self.data_dir: Union[str, pathlib.Path] = data_dir
+        self.ensemble_members: list[str] = ensemble_members
+        self.max_ensemble_members: int = max_ensemble_members
+        self.overwrite: bool = overwrite
+        self.download_metafiles: bool = download_metafiles
+        self.download_biomass_burning: bool = download_biomassburning
+        self.use_plain_emission_vars: bool = use_plain_emission_vars
 
         # Args processing
-        self._hande_max_possible_member_number(df_model_source=DATA_CSV, max_ensemble_members=max_ensemble_members)
+        selected_scenarios = get_select_model_scenarios()
+        self._hande_max_possible_member_number(
+            df_model_source=selected_scenarios, max_ensemble_members=max_ensemble_members
+        )
         self._handle_variables(
             variables=variables,
         )
@@ -153,7 +148,7 @@ class Downloader:
             self.model_source_center = MODEL_SOURCES[self.model]["center"]
 
     def _generate_plain_emission_vars(self):
-        if self.plain_emission_vars:
+        if self.use_plain_emission_vars:
             # plain vars are biomass vars
             self.biomass_vars = self.raw_vars
             self.meta_vars_percentage = [
@@ -216,8 +211,6 @@ class Downloader:
     #
     # Class functions
     #
-    # TODO Fix complexity issue
-    # TODO Refactor download to use wget scripts instead of Opendap, and setup test case
     def download_from_model_single_var(  # noqa: C901
         self,
         variable: str,
@@ -294,9 +287,10 @@ class Downloader:
 
             self.logger.info(f"Result len {len(results)}")
 
-            download_model_variable(model_id=self.model, search_results=results, variable=variable)
+            download_model_variable(
+                model_id=self.model, search_results=results, variable=variable, base_path=self.data_dir
+            )
 
-    # TODO: test, improve and cleanup download part
     def download_raw_input_single_var(  # noqa: C901
         self,
         variable: str,
@@ -343,7 +337,9 @@ class Downloader:
             results = ctx_target.search()
             self.logger.info(f"Result len  {len(results)}")
             if len(results) > 0:
-                download_raw_input_variable(institution_id=institution_id, search_results=results, variable=variable)
+                download_raw_input_variable(
+                    institution_id=institution_id, search_results=results, variable=variable, base_path=self.data_dir
+                )
 
             # files_list = temp_download_path.glob("*.nc")
             #
@@ -407,7 +403,6 @@ class Downloader:
             #         dataset = dataset.chunk({"time": chunk_size})
             #         dataset.to_netcdf(outfile, engine="h5netcdf")
 
-    # TODO Fix complexity issue
     def download_meta_historic_biomassburning_single_var(
         self,
         variable: str,
@@ -454,7 +449,9 @@ class Downloader:
         result_list = [r.file_context().search() for r in results]
         self.logger.info(f"List of results :\n{result_list}")
 
-        download_metadata_variable(institution_id=institution_id, search_results=results, variable=variable)
+        download_metadata_variable(
+            institution_id=institution_id, search_results=results, variable=variable, base_path=self.data_dir
+        )
         #
         # files_list = temp_download_path.glob("*.nc")
         # self.logger.info(f"List of files downloaded : \n{files_list}")

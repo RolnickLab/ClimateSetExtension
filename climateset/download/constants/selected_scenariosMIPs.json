@@ -1,0 +1,290 @@
+[
+  {
+    "Unnamed: 0": 0,
+    "source_id": "ACCESS-CM2",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp534-over ssp585",
+    "num_ensemble_members": "5 5 5 1 5",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 1,
+    "source_id": "ACCESS-ESM1-5",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp534-over ssp585",
+    "num_ensemble_members": "40 40 40 12 40",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 2,
+    "source_id": "AWI-CM-1-1-MR",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 5 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 3,
+    "source_id": "BCC-CSM2-MR",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 4,
+    "source_id": "CAMS-CSM1-0",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "2 2 2 2 2",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 7,
+    "source_id": "CAS-ESM2-0",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "2 2 2 2",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 8,
+    "source_id": "CESM2",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "3 3 3 3",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 9,
+    "source_id": "CESM2-WACCM",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp534-over ssp585",
+    "num_ensemble_members": "1 5 3 3 5",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 11,
+    "source_id": "CMCC-CM2-SR5",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 12,
+    "source_id": "CMCC-ESM2",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp534-over ssp585",
+    "num_ensemble_members": "1 1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 13,
+    "source_id": "CNRM-CM6-1",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "6 10 6 6",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 14,
+    "source_id": "CNRM-CM6-1-HR",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 15,
+    "source_id": "CNRM-ESM2-1",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "5 5 10 5 5 5 5 5",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 19,
+    "source_id": "EC-Earth3",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "52 57 97 57 50 50 50 58",
+    "data_node_available": false
+  },
+  {
+    "Unnamed: 0": 22,
+    "source_id": "EC-Earth3-Veg",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "3 7 8 6 8",
+    "data_node_available": false
+  },
+  {
+    "Unnamed: 0": 23,
+    "source_id": "EC-Earth3-Veg-LR",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "3 3 3 3 3",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 24,
+    "source_id": "FGOALS-f3-L",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 25,
+    "source_id": "FGOALS-g3",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "1 4 4 5 1 1 1 4",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 27,
+    "source_id": "GFDL-ESM4",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 3 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 28,
+    "source_id": "GISS-E2-1-G",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "7 16 36 27 7 8 11 15",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 29,
+    "source_id": "GISS-E2-1-H",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "2 10 10 6 2 2 6 10",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 30,
+    "source_id": "GISS-E2-2-G",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp534-over ssp585",
+    "num_ensemble_members": "5 5 5 5 5",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 31,
+    "source_id": "IITM-ESM",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 32,
+    "source_id": "INM-CM4-8",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 33,
+    "source_id": "INM-CM5-0",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 5 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 35,
+    "source_id": "IPSL-CM6A-LR",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "6 6 11 11 2 7 1 7",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 36,
+    "source_id": "KACE-1-0-G",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "3 3 3 3",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 38,
+    "source_id": "MCM-UA-1-0",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 40,
+    "source_id": "MIROC6",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "50 50 50 50 1 1 1 50",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 42,
+    "source_id": "MPI-ESM1-2-HR",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "2 2 10 2",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 43,
+    "source_id": "MPI-ESM1-2-LR",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "30 30 30 30 30",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 44,
+    "source_id": "MRI-ESM2-0",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp460 ssp534-over ssp585",
+    "num_ensemble_members": "5 5 10 5 1 1 1 6",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 46,
+    "source_id": "NorESM2-LM",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp126 ssp245 ssp370 ssp534-over ssp585",
+    "num_ensemble_members": "1 13 3 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 47,
+    "source_id": "NorESM2-MM",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 2 1 1",
+    "data_node_available": true
+  },
+  {
+    "Unnamed: 0": 48,
+    "source_id": "TaiESM1",
+    "nominal_resolution_km": 100,
+    "scenarios": "ssp126 ssp245 ssp370 ssp585",
+    "num_ensemble_members": "1 1 1 1",
+    "data_node_available": false
+  },
+  {
+    "Unnamed: 0": 51,
+    "source_id": "UKESM1-0-LL",
+    "nominal_resolution_km": 250,
+    "scenarios": "ssp119 ssp126 ssp245 ssp370 ssp434 ssp534-over ssp585",
+    "num_ensemble_members": "5 16 17 16 5 5 5",
+    "data_node_available": true
+  }
+]

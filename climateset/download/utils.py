@@ -1,12 +1,14 @@
 import logging
+import pathlib
 import re
 import subprocess
 import time
+from typing import Union
 
 import pandas as pd
 import xarray as xr
 
-from climateset import RAW_DATA
+from climateset import APP_ROOT, RAW_DATA
 from climateset.utils import create_logger
 
 LOGGER = create_logger(__name__)
@@ -156,18 +158,28 @@ def _download_process(temp_download_path, search_results, logger: logging.Logger
         _download_result(result=result, download_path=temp_download_path, logger=logger)
 
 
-def download_raw_input_variable(institution_id, search_results, variable):
-    temp_download_path = RAW_DATA / f"raw_input_vars/{institution_id}/{variable}"
+def download_raw_input_variable(
+    institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
+):
+    if isinstance(base_path, str):
+        base_path = pathlib.Path(base_path)
+    temp_download_path = base_path / f"raw_input_vars/{institution_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
-def download_model_variable(model_id, search_results, variable):
-    temp_download_path = RAW_DATA / f"model_vars/{model_id}/{variable}"
+def download_model_variable(model_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA):
+    if isinstance(base_path, str):
+        base_path = pathlib.Path(base_path)
+    temp_download_path = base_path / f"model_vars/{model_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
-def download_metadata_variable(institution_id, search_results, variable):
-    temp_download_path = RAW_DATA / f"meta_vars/{institution_id}/{variable}"
+def download_metadata_variable(
+    institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
+):
+    if isinstance(base_path, str):
+        base_path = pathlib.Path(base_path)
+    temp_download_path = base_path / f"meta_vars/{institution_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
@@ -261,3 +273,21 @@ def _handle_base_search_constraints(ctx, default_frequency, default_grid_label):
     if frequency:
         ctx = ctx.constrain(frequency=frequency)
     return ctx
+
+
+def get_select_model_scenarios(path_to_file: Union[str, pathlib.Path] = None) -> pd.DataFrame:
+    """
+    This function returns a dataframe based on input Json file.
+
+    Args:
+        path_to_file: Path to Json file
+
+    Returns:
+        Dataframe
+    """
+    if not path_to_file:
+        path_to_file = APP_ROOT / "download/constants/selected_scenariosMIPs.json"
+    if isinstance(path_to_file, str):
+        path_to_file = pathlib.Path(path_to_file)
+    selected_scenarios = pd.read_json(path_to_file, orient="records")
+    return selected_scenarios
