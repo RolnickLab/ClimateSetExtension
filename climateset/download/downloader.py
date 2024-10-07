@@ -114,7 +114,7 @@ class Downloader:
         self._handle_model_params()
 
     #
-    # Internal helper functions
+    # Internal helper functions for class init
     #
     def _hande_max_possible_member_number(self, df_model_source: pd.DataFrame, max_ensemble_members: int):
         max_possible_member_number = get_max_ensemble_member_number(
@@ -149,7 +149,6 @@ class Downloader:
             if self.model is not None:
                 self.logger.info(f"WARNING: Model {self.model} unknown. Using default instead.")
                 self.logger.info(f"Using : {self.model}")
-            # else None but we still need the links
             self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
             self.model_source_center = MODEL_SOURCES[self.model]["center"]
 
@@ -202,7 +201,6 @@ class Downloader:
     def _generate_variables(self, variables: list[str]):
         if variables is None:
             variables = ["tas", "pr", "SO2_em_anthro", "BC_em_anthro"]
-        # take care of var mistype (node takes no spaces or '-' only '_')
         variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
         self.logger.info(f"Cleaned variables : {variables}")
         for v in variables:
@@ -258,7 +256,6 @@ class Downloader:
             facets=facets,
         )
 
-        # dealing with grid labels
         ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
         variants = list(ctx.facet_counts["variant_label"].keys())
@@ -558,12 +555,9 @@ class Downloader:
         available value
         """
 
-        # iterate over respective vars
         for variable in self.model_vars:
             self.logger.info(f"Downloading data for variable: {variable}")
-            # iterate over experiments
             for experiment in self.experiments:
-                # check if experiment is available
                 if experiment in SUPPORTED_EXPERIMENTS:
                     self.logger.info(f"Downloading data for experiment: {experiment}")
                     self.download_from_model_single_var(variable=variable, experiment=experiment)
@@ -596,7 +590,6 @@ class Downloader:
             self.logger.info(f"Downloading data for variable: {variable}")
             self.download_raw_input_single_var(variable=variable, institution_id=institution_id)
 
-        # if download historical + openburning
         if self.download_biomass_burning & ("historical" in self.experiments):
             for variable in self.biomass_vars:
                 self.logger.info(f"Downloading biomassburing data for variable: {variable}")

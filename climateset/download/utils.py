@@ -24,10 +24,7 @@ def extract_target_mip_exp_name(filename: str, target_mip: str, logger: logging.
         logger: Logger instance
     """
     year_end = filename.split("_")[-1].split("-")[1].split(".")[0][:4]
-    # logger.info(f'years from {year_from} to {year_end}')
-
     if target_mip in ["ScenarioMIP", "DAMIP"]:
-        # extract ssp experiment from file name
         experiment = f"ssp{filename.split('ssp')[-1][:3]}"
         if "covid" in filename:
             experiment = f"{experiment}_covid"
@@ -68,7 +65,6 @@ def get_nominal_resolution(context, logger: logging.Logger = LOGGER):
     if not nominal_resolution_list:
         logger.warning("No nominal resolution")
         return nominal_resolution
-    # deal with multiple nominal resolutions, taking smallest one as default
     if len(nominal_resolution_list) > 1:
         logger.warning("Multiple nominal resolutions exist, will try to get smallest resolution.")
     nominal_resolution = nominal_resolution_list[0]
@@ -199,12 +195,10 @@ def get_max_ensemble_member_number(df_model_source: pd.DataFrame, experiments: l
         if model not in df_model_source["source_id"].tolist():
             logger.info(f"Model {model} not supported.")
             raise AttributeError
-        # extract member information
         model_id = df_model_source.index[df_model_source["source_id"] == model].values
         # get ensemble members per scenario
         max_ensemble_members_list = df_model_source["num_ensemble_members"][model_id].values.tolist()[0].split(" ")
         scenarios = df_model_source["scenarios"][model_id].values.tolist()[0].split(" ")
-        # create lookup
         max_ensemble_members_lookup = {}
         for s, m in zip(scenarios, max_ensemble_members_list):
             max_ensemble_members_lookup[s] = int(m)
@@ -225,7 +219,6 @@ def get_upload_version(context, preferred_version, logger=LOGGER):
         return version
     logger.info(f"Available versions : {versions}")
     if preferred_version:
-        # deal with different versions
         if preferred_version == "latest":
             version = versions[0]
             logger.info(f"Choosing latest version: {version}")
