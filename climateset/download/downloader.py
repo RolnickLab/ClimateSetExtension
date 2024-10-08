@@ -341,68 +341,6 @@ class Downloader:
                     institution_id=institution_id, search_results=results, variable=variable, base_path=self.data_dir
                 )
 
-            # files_list = temp_download_path.glob("*.nc")
-            #
-            # for f in files_list:
-            #     experiment = extract_target_mip_exp_name(str(f), target)
-            #     self.logger.info(f"Experiment : {experiment}")
-            #
-            #     # make sure to only download data for wanted scenarios
-            #     if experiment in self.experiments:
-            #         self.logger.info(f"Saving data for experiment : {experiment}")
-            #     else:
-            #         self.logger.info(
-            #             f"Experiment {experiment} not in wanted experiments ({self.experiments}). Skipping"
-            #         )
-            #         continue
-            #
-            #     try:
-            #         self.logger.info(f"Opening dataset [{f}]")
-            #         with xr.open_dataset(f) as ds:
-            #             dataset = ds
-            #     except OSError as os_error:
-            #         self.logger.error(f"Having problems opening the dateset [{f}]. Original file will not be")
-            #         self.logger.error(os_error)
-            #         continue
-            #
-            #     if nominal_resolution == "none":
-            #         nominal_resolution = infer_nominal_resolution(dataset, nominal_resolution)
-            #
-            #     years = np.unique(dataset.time.dt.year.to_numpy())
-            #     self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
-            #     year_tag = f"{years[0]}_{years[-1]}"
-            #
-            #     if variable in self.biomass_vars:
-            #         variable = f"{variable}_em_biomassburning"
-            #     nominal_resolution = nominal_resolution.strip()
-            #     nominal_resolution = nominal_resolution.replace(" ", "_")
-            #     # Check whether the specified path exists or not
-            #     base_filename = f"{experiment}_{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
-            #     if save_to_meta:
-            #         # if meta, we have future openburning stuff
-            #
-            #         out_dir = (
-            #             f"future-openburning/{experiment}/{variable.split('_')[0]}/{nominal_resolution}/{frequency}/"
-            #         )
-            #         out_name = f"future_openburning_{base_filename}"
-            #         path = os.path.join(self.meta_dir_parent, out_dir)
-            #     else:
-            #         out_dir = f"{project}/{experiment}/{variable}/{nominal_resolution}/{frequency}/"
-            #         out_name = f"{project}_{base_filename}"
-            #         path = os.path.join(self.data_dir_parent, out_dir)
-            #
-            #     os.makedirs(path, exist_ok=True)
-            #     outfile = path + out_name
-            #
-            #     if (not self.overwrite) and os.path.isfile(outfile):
-            #         self.logger.info(f"File {outfile} already exists, skipping.")
-            #     else:
-            #         self.logger.info("Writing file")
-            #         self.logger.info(outfile)
-            #         chunk_size = RES_TO_CHUNKSIZE[frequency]
-            #         dataset = dataset.chunk({"time": chunk_size})
-            #         dataset.to_netcdf(outfile, engine="h5netcdf")
-
     def download_meta_historic_biomassburning_single_var(
         self,
         variable: str,
@@ -452,87 +390,6 @@ class Downloader:
         download_metadata_variable(
             institution_id=institution_id, search_results=results, variable=variable, base_path=self.data_dir
         )
-        #
-        # files_list = temp_download_path.glob("*.nc")
-        # self.logger.info(f"List of files downloaded : \n{files_list}")
-        #
-        # for f in files_list:
-        #     # find out chunking dependent on resolution
-        #     chunk_size = RES_TO_CHUNKSIZE[frequency]
-        #     self.logger.info(f"Chunksize : {chunk_size}")
-        #
-        #     # replacing spaces for file naming
-        #     nominal_resolution = nominal_resolution.replace(" ", "_")
-        #
-        #     try:
-        #         dataset = xr.open_dataset(f, chunks={"time": chunk_size})
-        #     except OSError:
-        #         self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
-        #         continue
-        #
-        #     years = np.unique(dataset.time.dt.year.to_numpy())
-        #     self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
-        #     year_tag = f"{years[0]}_{years[-1]}"
-        #
-        #     out_dir = f"historic-biomassburning/{variable_save}/{nominal_resolution}/{frequency}/"
-        #
-        #     # Check whether the specified path exists or not
-        #     path = os.path.join(self.meta_dir_parent, out_dir)
-        #     os.makedirs(path, exist_ok=True)
-        #
-        #     base_file_name = f"{variable}_{nominal_resolution}_{frequency}_{grid_label}_{year_tag}.nc"
-        #     outfile = path + base_file_name
-        #
-        #     if (not self.overwrite) and os.path.isfile(outfile):
-        #         self.logger.info(f"File {outfile} already exists, skipping.")
-        #     else:
-        #         self.logger.info("Writing file")
-        #         self.logger.info(outfile)
-        #         dataset = dataset.chunk({"time": chunk_size})
-        #         dataset.to_netcdf(outfile, engine="h5netcdf")
-
-        # for i, files in enumerate(files_list):
-        #     file_names = [files[i].opendap_url for i in range(len(files))]
-        #     self.logger.info(f"File {i} names : {file_names}")
-        #
-        #     # find out chunking dependent on resolution
-        #     chunksize = RES_TO_CHUNKSIZE[frequency]
-        #     self.logger.info(f"Chunksize : {chunksize}")
-        #
-        #     # replacing spaces for file naming
-        #     nominal_resolution = nominal_resolution.replace(" ", "_")
-        #
-        #     for f in file_names:
-        #         try:
-        #             ds = xr.open_dataset(f, chunks={"time": chunksize})
-        #         except OSError:
-        #             self.logger.info("Having problems downloading the dataset. The server might be down. Skipping")
-        #             continue
-        #
-        #         years = np.unique(ds.time.dt.year.to_numpy())
-        #         self.logger.info(f"Data covering years: {years[0]} to {years[-1]}")
-        #
-        #         for y in years:
-        #             y = str(y)
-        #             out_dir = f"historic-biomassburning/{variable_save}/{nominal_resolution}/{frequency}/{y}/"
-        #
-        #             # Check whether the specified path exists or not
-        #             path = os.path.join(self.meta_dir_parent, out_dir)
-        #             os.makedirs(path, exist_ok=True)
-        #
-        #             out_name = f"{variable}_{nominal_resolution}_{frequency}_{grid_label}_{y}.nc"
-        #             outfile = path + out_name
-        #
-        #             if (not self.overwrite) and os.path.isfile(outfile):
-        #                 self.logger.info(f"File {outfile} already exists, skipping.")
-        #             else:
-        #                 self.logger.info(f"Selecting specific year : {y}")
-        #                 ds_y = ds.sel(time=y)
-        #                 self.logger.info(ds_y)
-        #
-        #                 self.logger.info("Writing file")
-        #                 self.logger.info(outfile)
-        #                 ds_y.to_netcdf(outfile)
 
     def download_from_model(self):
         """
@@ -604,7 +461,7 @@ class Downloader:
 
 def download_from_config_file(config: str, logger: logging.Logger = LOGGER):
     """
-
+    This function downloads variables automatically from input config file
     Args:
         config: Can be a dictionary containing configurations or a path to a configuration yaml file
         logger: Logging instance
