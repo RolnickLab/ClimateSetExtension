@@ -12,7 +12,7 @@ DOWNLOAD_RAW_INPUT_SINGLE_VAR = "climateset.download.downloader.Downloader.downl
 DOWNLOAD_META_HISTORIC_SINGLE_VAR = (
     "climateset.download.downloader.Downloader.download_meta_historic_biomassburning_single_var"
 )
-DOWNLOAD_FROM_MODEL_SINGLE_VAR = "climateset.download.downloader.Downloader.download_from_model_single_var"
+DOWNLOAD_MODEL_SINGLE_VAR = "climateset.download.downloader.Downloader.download_from_model_single_var"
 SUBPROCESS_RUN = "subprocess.run"
 
 EXPECTED_MINIMAL_RAW_INPUT_CALLS = [
@@ -43,26 +43,26 @@ EXPECTED_MINIMAL_MODEL_CALLS = [
 
 @pytest.fixture()
 def mock_raw_input_single_var():
-    with patch(DOWNLOAD_RAW_INPUT_SINGLE_VAR) as mock_raw_input:
-        yield mock_raw_input
+    with patch(DOWNLOAD_RAW_INPUT_SINGLE_VAR) as mock_function:
+        yield mock_function
 
 
 @pytest.fixture()
 def mock_meta_historic_single_var():
-    with patch(DOWNLOAD_META_HISTORIC_SINGLE_VAR) as mock_meta_input:
-        yield mock_meta_input
+    with patch(DOWNLOAD_META_HISTORIC_SINGLE_VAR) as mock_function:
+        yield mock_function
 
 
 @pytest.fixture()
 def mock_model_single_var():
-    with patch(DOWNLOAD_FROM_MODEL_SINGLE_VAR) as mock_model:
-        yield mock_model
+    with patch(DOWNLOAD_MODEL_SINGLE_VAR) as mock_function:
+        yield mock_function
 
 
 @pytest.fixture()
 def mock_subprocess_run():
-    with patch(SUBPROCESS_RUN) as mock_subprocess_run:
-        yield mock_subprocess_run
+    with patch(SUBPROCESS_RUN) as mock_function:
+        yield mock_function
 
 
 @pytest.fixture
@@ -114,44 +114,43 @@ def test_downloader_model_params(simple_downloader_object):
 
 
 def test_download_raw_input(simple_downloader_object, mock_raw_input_single_var, mock_meta_historic_single_var):
-    mock_raw_input = mock_raw_input_single_var
-    mock_meta_input = mock_meta_historic_single_var
     simple_downloader_object.download_raw_input()
-    assert mock_raw_input.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
-    assert mock_meta_input.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
+    assert mock_raw_input_single_var.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
+    assert mock_raw_input_single_var.call_count == 8
+    assert mock_meta_historic_single_var.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
+    assert mock_meta_historic_single_var.call_count == 6
 
 
 def test_download_from_model(simple_downloader_object, mock_model_single_var):
-    mock_model = mock_model_single_var
     simple_downloader_object.download_from_model()
-    assert mock_model.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
+    assert mock_model_single_var.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
+    assert mock_model_single_var.call_count == 2
 
 
 def test_download_from_config_file(
     simple_downloader_object, mock_raw_input_single_var, mock_meta_historic_single_var, mock_model_single_var
 ):
-    mock_raw_input = mock_raw_input_single_var
-    mock_meta_input = mock_meta_historic_single_var
-    mock_model = mock_model_single_var
-
     download_from_config_file(config=MINIMAL_DATASET_CONFIG_PATH)
 
-    assert mock_raw_input.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
-    assert mock_meta_input.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
-    assert mock_model.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
+    assert mock_raw_input_single_var.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
+    assert mock_raw_input_single_var.call_count == 8
+    assert mock_meta_historic_single_var.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
+    assert mock_meta_historic_single_var.call_count == 6
+    assert mock_model_single_var.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
+    assert mock_model_single_var.call_count == 2
 
 
-def _assert_content_is_in_wget_script(download_subprocess, f):
+def _assert_content_is_in_wget_script(mock_call, string_content):
     # This seems very obscure, so here's what's happening,
     # With the provided inputs, there should be only 1 call.
     # We then access the call's arguments. We are interested in
     # the content of the wget script that is generated, and we
     # want to make sure that for there inputs, we get the same files
-    call_list = download_subprocess.call_args_list
+    call_list = mock_call.call_args_list
     first_and_only_call = call_list[0]
     call_arguments = first_and_only_call.args[0]
     wget_script_content = call_arguments[2]
-    assert f in wget_script_content
+    assert string_content in wget_script_content
 
 
 def test_download_raw_input_single_var(simple_downloader_object, mock_subprocess_run):
@@ -173,7 +172,6 @@ def test_download_raw_input_single_var(simple_downloader_object, mock_subprocess
 
 
 def test_download_meta_historic_biomassburning_single_var(simple_downloader_object, mock_subprocess_run):
-    download_subprocess = mock_subprocess_run
     simple_downloader_object.download_meta_historic_biomassburning_single_var(
         variable="CH4_percentage_AGRI", institution_id="VUA"
     )
@@ -181,13 +179,12 @@ def test_download_meta_historic_biomassburning_single_var(simple_downloader_obje
     expected_files = [
         "CH4-percentage-AGRI-em-biomassburning_input4MIPs_emissions_CMIP_VUA-CMIP-BB4CMIP6-1-2_gn_175001-201512.nc"
     ]
-    download_subprocess.assert_called_once()
+    mock_subprocess_run.assert_called_once()
     for f in expected_files:
-        _assert_content_is_in_wget_script(download_subprocess, f)
+        _assert_content_is_in_wget_script(mock_call=mock_subprocess_run, string_content=f)
 
 
 def test_download_from_model_single_var(simple_downloader_object, mock_subprocess_run):
-    download_subprocess = mock_subprocess_run
     simple_downloader_object.download_from_model_single_var(variable="tas", experiment="ssp126")
 
     expected_files = [
@@ -201,6 +198,6 @@ def test_download_from_model_single_var(simple_downloader_object, mock_subproces
         "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_208101-209012.nc",
         "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_209101-210012.nc",
     ]
-    download_subprocess.assert_called_once()
+    mock_subprocess_run.assert_called_once()
     for f in expected_files:
-        _assert_content_is_in_wget_script(download_subprocess, f)
+        _assert_content_is_in_wget_script(mock_call=mock_subprocess_run, string_content=f)

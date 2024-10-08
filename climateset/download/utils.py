@@ -61,8 +61,8 @@ def get_nominal_resolution(context, logger: logging.Logger = LOGGER):
     """
     nominal_resolution = ""
     nominal_resolution_list = []
-    if "nominal_resolution" in context.facet_counts.keys():
-        nominal_resolution_list = list(context.facet_counts["nominal_resolution"].keys())
+    if "nominal_resolution" in context.facet_counts:
+        nominal_resolution_list = list(context.facet_counts["nominal_resolution"])
         logger.info(f"Available nominal resolution : {nominal_resolution_list}")
     if not nominal_resolution_list:
         logger.warning("No nominal resolution")
@@ -186,8 +186,8 @@ def download_metadata_variable(
 def get_grid_label(context, default_grid_label, logger=LOGGER):
     grid_label = ""
     grid_label_list = []
-    if "grid_label" in context.facet_counts.keys():
-        grid_label_list = list(context.facet_counts["grid_label"].keys())
+    if "grid_label" in context.facet_counts:
+        grid_label_list = list(context.facet_counts["grid_label"])
         logger.info(f"Available grid labels : {grid_label_list}")
     if not grid_label_list:
         logger.warning("No grid labels found")
@@ -224,8 +224,8 @@ def get_max_ensemble_member_number(df_model_source: pd.DataFrame, experiments: l
 def get_upload_version(context, preferred_version, logger=LOGGER):
     version = ""
     versions = []
-    if "version" in context.facet_counts.keys():
-        versions = list(context.facet_counts["version"].keys())
+    if "version" in context.facet_counts:
+        versions = list(context.facet_counts["version"])
     if not versions:
         logger.warning("No versions are available. Skipping.")
         return version
@@ -247,8 +247,8 @@ def get_upload_version(context, preferred_version, logger=LOGGER):
 def get_frequency(context, default_frequency, logger=LOGGER):
     frequency = ""
     frequency_list = []
-    if "frequency" in context.facet_counts.keys():
-        frequency_list = list(context.facet_counts["frequency"].keys())
+    if "frequency" in context.facet_counts:
+        frequency_list = list(context.facet_counts["frequency"])
         logger.info(f"Available frequencies : {frequency_list}")
     if not frequency_list:
         logger.warning("No frequencies are available. Skipping")

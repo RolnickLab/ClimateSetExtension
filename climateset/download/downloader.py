@@ -251,7 +251,7 @@ class Downloader:
 
         ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
-        variants = list(ctx.facet_counts["variant_label"].keys())
+        variants = list(ctx.facet_counts["variant_label"])
 
         self.logger.info(f"Available variants : {variants}\n")
         self.logger.info(f"Length : {len(variants)}")
@@ -325,7 +325,7 @@ class Downloader:
 
         ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
-        mips_targets = list(ctx.facet_counts["target_mip"].keys())
+        mips_targets = list(ctx.facet_counts["target_mip"])
         self.logger.info(f"Available target mips: {mips_targets}")
 
         for target in mips_targets:
