@@ -1,0 +1,4 @@
+models: ["ESACCI-CLOUD-ATSR2-AATSR-3-0"]
+downloader_kwargs:
+  variables: ["pctCCI"]
+  experiments: [""]
