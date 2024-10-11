@@ -1,0 +1,4 @@
+models: ["NorESM2-LM"]
+downloader_kwargs:
+  variables: ["BC"]
+  experiments: ["historical"]

@@ -1,0 +1,9 @@
+models: ["NorESM2-LM"]
+downloader_kwargs:
+  variables: ["tas", "CH4", "CO2"]
+  experiments: ["historical", "ssp126"]
+  max_ensemble_members: 1
+  overwrite: true
+  download_biomassburning: false
+  start_year: 1990
+  end_year: 2030

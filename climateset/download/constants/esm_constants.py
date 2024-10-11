@@ -43,8 +43,8 @@ ADDITIONAL_SCENARIOS = ["hist-aer", "hist-GHG", "piControl", "ssp370-lowNTCF"]
 # model
 MODELS = ["nan"]
 
-# number of esemble members to be considered
-NUM_ESEMBLE = 1
+# number of ensemble members to be considered
+NUM_ENSEMBLE = 1
 
 # which type of grid
 GRID = "grid"

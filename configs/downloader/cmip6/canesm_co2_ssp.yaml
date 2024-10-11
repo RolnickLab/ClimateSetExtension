@@ -1,0 +1,4 @@
+models: ["CanESM5"]
+downloader_kwargs:
+  variables: ["co2"]
+  experiments: ["ssp245"]

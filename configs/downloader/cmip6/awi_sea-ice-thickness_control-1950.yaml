@@ -1,0 +1,4 @@
+models: ["AWI-CM-1-1-HR"]
+downloader_kwargs:
+  variables: ["sithick"]
+  experiments: ["control-1950"]
