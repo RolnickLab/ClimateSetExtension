@@ -2,7 +2,6 @@ import logging
 import pathlib
 from typing import Union
 
-import pandas as pd
 from pyesgf.search import SearchConnection
 
 from climateset import RAW_DATA
@@ -21,8 +20,6 @@ from climateset.download.utils import (
     download_metadata_variable,
     download_model_variable,
     download_raw_input_variable,
-    get_max_ensemble_member_number,
-    get_select_model_scenarios,
     get_upload_version,
 )
 from climateset.utils import create_logger, get_keys_from_value, get_yaml_config
@@ -72,7 +69,6 @@ class Downloader:
         self.logger = logger
         self.model: str = model
         self.model_node_link: str = ""
-        self.model_source_center: str = ""
         if experiments is None:
             experiments = [
                 "historical",
@@ -98,32 +94,13 @@ class Downloader:
         self.download_biomass_burning: bool = download_biomassburning
         self.use_plain_emission_vars: bool = use_plain_emission_vars
 
+        # if max ensemble member number is too large --> we are relying on the server to complain?
+
         # Args processing
-        selected_scenarios = get_select_model_scenarios()
-        self._hande_max_possible_member_number(
-            df_model_source=selected_scenarios, max_ensemble_members=max_ensemble_members
-        )
         self._handle_variables(
             variables=variables,
         )
         self._handle_model_params()
-
-    #
-    # Internal helper functions for class init
-    #
-    def _hande_max_possible_member_number(self, df_model_source: pd.DataFrame, max_ensemble_members: int):
-        max_possible_member_number = get_max_ensemble_member_number(
-            df_model_source=df_model_source, experiments=self.experiments, model=self.model
-        )
-        if max_ensemble_members == -1:
-            self.logger.info("Trying to take all ensemble members available.")
-            self.max_ensemble_members = max_possible_member_number
-            # verify that we have enough members for wanted experiments
-            # else choose the smallest available for all
-        if max_ensemble_members > max_possible_member_number:
-            self.logger.info("Not enough members available. Choosing smallest maximum.")
-            self.max_ensemble_members = max_possible_member_number
-        self.logger.info(f"Downloading data for {self.max_ensemble_members} members.")
 
     def _handle_variables(self, variables: list[str]):
         self._generate_variables(variables=variables)
@@ -138,14 +115,13 @@ class Downloader:
     def _handle_model_params(self):
         try:
             self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
-            self.model_source_center = MODEL_SOURCES[self.model]["center"]
         except KeyError:
-            self.model = next(iter(MODEL_SOURCES))
             if self.model is not None:
-                self.logger.info(f"WARNING: Model {self.model} unknown. Using default instead.")
+                self.logger.info(f"WARNING: Model {self.model} unknown.")
+                # TODO cause an error here and exit (move to next download item)
+                self.model = next(iter(MODEL_SOURCES))
                 self.logger.info(f"Using : {self.model}")
             self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
-            self.model_source_center = MODEL_SOURCES[self.model]["center"]
 
     def _generate_plain_emission_vars(self):
         if self.use_plain_emission_vars:
@@ -250,6 +226,8 @@ class Downloader:
         )
 
         ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+
+        # CONTINUE DEBUGGING HERE
 
         variants = list(ctx.facet_counts["variant_label"])
 
