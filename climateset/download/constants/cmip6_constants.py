@@ -1,119 +1,146 @@
-# Supported Model sources
+# The values here have been retrieved from here:
+# https://wcrp-cmip.org/cmip-data-access/
+
+# This entry node link is automatically changing to other nodes
 NODE_LINK = "http://esgf-node.llnl.gov/esg-search/"
-MODEL_SOURCES = {
-    "ACCESS-CM2": {
-        "node_link": NODE_LINK,
-    },
-    "ACCESS-ESM1-5": {
-        "node_link": NODE_LINK,
-    },
-    "AWI-CM-1-1-MR": {
-        "node_link": NODE_LINK,
-    },
-    "BCC-CSM2-MR": {
-        "node_link": NODE_LINK,
-    },
-    "CAMS-CSM1-0": {
-        "node_link": NODE_LINK,
-    },
-    "CAS-ESM2-0": {
-        "node_link": NODE_LINK,
-    },
-    "CESM2": {
-        "node_link": NODE_LINK,
-    },
-    "CESM2-WACCM": {
-        "node_link": NODE_LINK,
-    },
-    "CMCC-CM2-SR5": {
-        "node_link": NODE_LINK,
-    },
-    "CMCC-ESM2": {
-        "node_link": NODE_LINK,
-    },
-    "CNRM-CM6-1": {
-        "node_link": NODE_LINK,
-    },
-    "CNRM-CM6-1-HR": {
-        "node_link": NODE_LINK,
-    },
-    "CNRM-ESM2-1": {
-        "node_link": NODE_LINK,
-    },
-    "EC-Earth3": {
-        "node_link": NODE_LINK,
-    },
-    "EC-Earth3-Veg": {
-        "node_link": NODE_LINK,
-    },
-    "EC-Earth3-Veg-LR": {
-        "node_link": NODE_LINK,
-    },
-    "FGOALS-f3-L": {
-        "node_link": NODE_LINK,
-    },
-    "FGOALS-g3": {
-        "node_link": NODE_LINK,
-    },
-    "GFDL-ESM4": {
-        "node_link": NODE_LINK,
-    },
-    "GISS-E2-1-G": {
-        "node_link": NODE_LINK,
-    },
-    "GISS-E2-1-H": {
-        "node_link": NODE_LINK,
-    },
-    "GISS-E2-2-G": {
-        "node_link": NODE_LINK,
-    },
-    "IITM-ESM": {
-        "node_link": NODE_LINK,
-    },
-    "INM-CM4-8": {
-        "node_link": NODE_LINK,
-    },
-    "INM-CM5-0": {
-        "node_link": NODE_LINK,
-    },
-    "IPSL-CM6A-LR": {
-        "node_link": NODE_LINK,
-    },
-    "KACE-1-0-G": {
-        "node_link": NODE_LINK,
-    },
-    "MCM-UA-1-0": {
-        "node_link": NODE_LINK,
-    },
-    "MIROC6": {
-        "node_link": NODE_LINK,
-    },
-    # there are several centers for the MPI models - consider choosing another one if needed
-    "MPI-ESM1-2-HR": {
-        "node_link": NODE_LINK,
-    },
-    "MPI-ESM1-2-LR": {
-        "node_link": NODE_LINK,
-    },
-    "MRI-ESM2-0": {
-        "node_link": NODE_LINK,
-    },
-    "NorESM2-LM": {
-        "node_link": "https://esgf-data.dkrz.de/esg-search",
-    },
-    "NorESM2-MM": {
-        "node_link": "https://esgf-data.dkrz.de/esg-search",
-    },
-    "TaiESM1": {
-        "node_link": NODE_LINK,
-    },
-    # there are several centers for the UKESM models - consider choosing another one if needed
-    "UKESM1-0-LL": {
-        "node_link": NODE_LINK,
-    },
-    # "NorESM2-LM": {"node_link": "https://esgf-data.dkrz.de/esg-search", "center": "NCC"},
-    # "CanESM5" : {"node_link": NODE_LINK, "center": "CCCma"}
-}
+
+# Supported Model sources
+
+MODEL_SOURCES = [
+    "4AOP-v1-5",
+    "ACCESS-CM2",
+    "ACCESS-ESM1-5",
+    "ACCESS-OM2",
+    "ACCESS-OM2-025",
+    "ARTS-2-3",
+    "AWI-CM-1-1-HR",
+    "AWI-CM-1-1-LR",
+    "AWI-CM-1-1-MR",
+    "AWI-ESM-1-1-LR",
+    "AWI-ESM-2-1-LR",
+    "BCC-CSM2-HR",
+    "BCC-CSM2-MR",
+    "BCC-ESM1",
+    "CAM-MPAS-HR",
+    "CAM-MPAS-LR",
+    "CAMS-CSM1-0",
+    "CanESM5",
+    "CanESM5-1",
+    "CanESM5-CanOE",
+    "CAS-ESM2-0",
+    "CESM1-1-CAM5-CMIP5",
+    "CESM1-CAM5-SE-HR",
+    "CESM1-CAM5-SE-LR",
+    "CESM1-WACCM-SC",
+    "CESM2",
+    "CESM2-FV2",
+    "CESM2-WACCM",
+    "CESM2-WACCM-FV2",
+    "CIESM",
+    "CMCC-CM2-HR4",
+    "CMCC-CM2-SR5",
+    "CMCC-CM2-VHR4",
+    "CMCC-ESM2",
+    "CNRM-CM6-1",
+    "CNRM-CM6-1-HR",
+    "CNRM-ESM2-1",
+    "E3SM-1-0",
+    "E3SM-1-1",
+    "E3SM-1-1-ECA",
+    "E3SM-2-0",
+    "EC-Earth3",
+    "EC-Earth3-AerChem",
+    "EC-Earth3-CC",
+    "EC-Earth3-GrIS",
+    "EC-Earth3-HR",
+    "EC-Earth3-LR",
+    "EC-Earth3-Veg",
+    "EC-Earth3-Veg-LR",
+    "EC-Earth3P",
+    "EC-Earth3P-HR",
+    "EC-Earth3P-VHR",
+    "ECMWF-IFS-HR",
+    "ECMWF-IFS-LR",
+    "ECMWF-IFS-MR",
+    "FGOALS-f3-H",
+    "FGOALS-f3-L",
+    "FGOALS-g3",
+    "FIO-ESM-2-0",
+    "GFDL-AM4",
+    "GFDL-CM4",
+    "GFDL-CM4C192",
+    "GFDL-ESM2M",
+    "GFDL-ESM4",
+    "GFDL-GRTCODE",
+    "GFDL-OM4p5B",
+    "GFDL-RFM-DISORT",
+    "GISS-E2-1-G",
+    "GISS-E2-1-G-CC",
+    "GISS-E2-1-H",
+    "GISS-E2-2-G",
+    "GISS-E2-2-H",
+    "GISS-E3-G",
+    "HadGEM3-GC31-HH",
+    "HadGEM3-GC31-HM",
+    "HadGEM3-GC31-LL",
+    "HadGEM3-GC31-LM",
+    "HadGEM3-GC31-MH",
+    "HadGEM3-GC31-MM",
+    "HiRAM-SIT-HR",
+    "HiRAM-SIT-LR",
+    "ICON-ESM-LR",
+    "IITM-ESM",
+    "INM-CM4-8",
+    "INM-CM5-0",
+    "INM-CM5-H",
+    "IPSL-CM5A2-INCA",
+    "IPSL-CM6A-ATM-HR",
+    "IPSL-CM6A-ATM-ICO-HR",
+    "IPSL-CM6A-ATM-ICO-LR",
+    "IPSL-CM6A-ATM-ICO-MR",
+    "IPSL-CM6A-ATM-ICO-VHR",
+    "IPSL-CM6A-ATM-LR-REPROBUS",
+    "IPSL-CM6A-LR",
+    "IPSL-CM6A-LR-INCA",
+    "IPSL-CM6A-MR1",
+    "KACE-1-0-G",
+    "KIOST-ESM",
+    "LBLRTM-12-8",
+    "MCM-UA-1-0",
+    "MIROC-ES2H",
+    "MIROC-ES2H-NB",
+    "MIROC-ES2L",
+    "MIROC6",
+    "MPI-ESM-1-2-HAM",
+    "MPI-ESM1-2-HR",
+    "MPI-ESM1-2-LR",
+    "MPI-ESM1-2-XR",
+    "MRI-AGCM3-2-H",
+    "MRI-AGCM3-2-S",
+    "MRI-ESM2-0",
+    "NESM3",
+    "NICAM16-7S",
+    "NICAM16-8S",
+    "NICAM16-9S",
+    "NorCPM1",
+    "NorESM1-F",
+    "NorESM2-LM",
+    "NorESM2-MH",
+    "RRTMG-LW-4-91",
+    "RRTMG-SW-4-02",
+    "RTE-RRTMGP-181204",
+    "SAM0-UNICON",
+    "TaiESM1",
+    "TaiESM1-TIMCOM",
+    "TaiESM1-TIMCOM2",
+    "UKESM1-0-LL",
+    "UKESM1-1-LL",
+    "UKESM1-ice-LL",
+    "E3SM-2-0-NARRM",
+    "E3SM-2-1",
+    "EC-Earth3-ESM-1",
+    "PCMDI-test-1-0",
+]
 
 VAR_SOURCE_LOOKUP = {
     "model": [
@@ -1273,49 +1300,6 @@ VAR_SOURCE_LOOKUP = {
         "AGR",
     ],
 }
-
-SUPPORTED_EXPERIMENTS = [
-    "ssp585",
-    "ssp370-lowNTCF",
-    "ssp370",
-    "ssp245",
-    "ssp126",
-    "piControl",
-    "piClim-spAer-anthro",
-    "piClim-spAer-aer",
-    "piClim-lu",
-    "piClim-histnat",
-    "piClim-histghg",
-    "piClim-histall",
-    "piClim-histaer",
-    "piClim-ghg",
-    "piClim-control",
-    "piClim-anthro",
-    "piClim-aer",
-    "piClim-N2O",
-    "piClim-CH4",
-    "piClim-4xCO2",
-    "piClim-2xss",
-    "piClim-2xdust",
-    "piClim-2xVOC",
-    "piClim-2xDMS",
-    "pdSST-piArcSIC",
-    "pdSST-pdSIC",
-    "pdSST-futArcSIC",
-    "midHolocene",
-    "lig127k",
-    "historical",
-    "histSST-piNTCF",
-    "histSST-piAer",
-    "histSST",
-    "hist-spAer-all",
-    "hist-piNTCF",
-    "hist-piAer",
-    "hist-nat",
-    "hist-aer",
-    "hist-GHG",
-    "amip",
-]
 
 SUPPORTED_EXPERIMENTS = [
     "hist-1950HC",
