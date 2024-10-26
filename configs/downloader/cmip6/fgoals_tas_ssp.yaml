@@ -1,3 +1,4 @@
+project: "CMIP6"
 models: ["FGOALS-g3"]
 downloader_kwargs:
   variables: ["tas"]

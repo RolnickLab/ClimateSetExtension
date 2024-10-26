@@ -1,3 +1,4 @@
+project: "input4mips"
 models: ["NorESM2-LM"]
 downloader_kwargs:
   variables: ["CO2"]
