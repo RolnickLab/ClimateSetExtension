@@ -4,16 +4,14 @@ from typing import Union
 
 from pyesgf.search import SearchConnection
 
+import climateset.download.constants.cmip6_constants as cmip6_constants
+import climateset.download.constants.cmip6plus_constants as cmip6plus_constants
+import climateset.download.constants.input4mips_constants as input4mips_constants
 from climateset import RAW_DATA
 from climateset.download.constants.data_constants import (
     EMISSIONS_ENDINGS,
     META_ENDINGS_PRC,
     META_ENDINGS_SHAR,
-)
-from climateset.download.constants.esgf_server import (
-    MODEL_SOURCES,
-    SUPPORTED_EXPERIMENTS,
-    VAR_SOURCE_LOOKUP,
 )
 from climateset.download.utils import (
     _handle_base_search_constraints,
@@ -37,6 +35,7 @@ class Downloader:
     # TODO Fix complexity issue
     def __init__(  # noqa: C901
         self,
+        project: str = "CMIP6",  # default as in ClimateBench
         model: Union[str, None] = "NorESM2-LM",  # default as in ClimateBench
         experiments: list[str] = None,  # sub-selection of ClimateBench default
         variables: list[str] = None,
@@ -53,6 +52,8 @@ class Downloader:
         Init method for the Downloader.
 
         Args:
+            project (str): Which categorie the data belongs to. Can be: CMIP6, CMIP6Plus, E3SM, input4mips, obs4mips, and more.
+                To date, only CMIP6, and input4mips are supported.
             model: Model ID from which output should be downloaded. A list of all supported model ids can
                 be found in parameters.constants.MODEL_SOURCES. Model data only.
             experiments:  List of simulations from which data should be downloaded. Model data only.
@@ -67,18 +68,11 @@ class Downloader:
         """
         # Args init
         self.logger = logger
+        # init global variables depending on project type
+        self._init_globs(project)
+        self.project: str = project
         self.model: str = model
         self.model_node_link: str = ""
-        if experiments is None:
-            experiments = [
-                "historical",
-                "ssp370",
-                "hist-GHG",
-                "piControl",
-                "ssp434",
-                "ssp126",
-            ]
-        # TODO: have a list of supported experiments before trying to look for them on the node
         #  to reduce computation cost
         self.experiments: list[str] = experiments
         self.raw_vars: list[str] = []
@@ -93,14 +87,52 @@ class Downloader:
         self.download_metafiles: bool = download_metafiles
         self.download_biomass_burning: bool = download_biomassburning
         self.use_plain_emission_vars: bool = use_plain_emission_vars
+        self.model_node_link = self.NODE_LINK
 
         # if max ensemble member number is too large --> we are relying on the server to complain?
+
+        self._check_desired_params()
 
         # Args processing
         self._handle_variables(
             variables=variables,
         )
-        self._handle_model_params()
+        # self._handle_model_params()
+
+    # TODO we need to make the downloader an abstract parent class
+    # each project needs its own constant file + downloader function, the rest stays the same
+    # this function should not be done this way, this is the first naive approach
+    def _init_globs(self, project: str):
+        """Load globs depending on project."""
+        if project == "CMIP6":
+            self.MODEL_SOURCES = cmip6_constants.MODEL_SOURCES
+            self.SUPPORTED_EXPERIMENTS = cmip6_constants.SUPPORTED_EXPERIMENTS
+            self.VAR_SOURCE_LOOKUP = cmip6_constants.VAR_SOURCE_LOOKUP
+            self.NODE_LINK = cmip6_constants.NODE_LINK
+        elif project == "input4mips":
+            self.NODE_LINK = input4mips_constants.NODE_LINK
+        elif project == "CMIP6Plus":
+            self.MODEL_SOURCES = cmip6plus_constants.MODEL_SOURCES
+            self.SUPPORTED_EXPERIMENTS = cmip6plus_constants.SUPPORTED_EXPERIMENTS
+            self.VAR_SOURCE_LOOKUP = cmip6plus_constants.VAR_SOURCE_LOOKUP
+            self.NODE_LINK = cmip6plus_constants.NODE_LINK
+        else:
+            self.logger.info(f"Project {project} has not been implemented in the Downloader yet.")
+            raise NotImplementedError(f"Project {project} has not been implemented in the downloader.")
+
+    def _check_desired_params(self):
+        """Check if the desired params exist."""
+        # check model
+        if self.model not in self.MODEL_SOURCES:
+            self.logger.info(f"WARNING: Model {self.model} unknown.")
+            raise ValueError(
+                f"Model {self.model} is not in the list of supported models. Consider adding manually to esgf_server.py"
+            )
+
+        # check experiments
+        # loop over experiments and check for each experiment in the list
+
+        # check variables
 
     def _handle_variables(self, variables: list[str]):
         self._generate_variables(variables=variables)
@@ -113,15 +145,18 @@ class Downloader:
             self.logger.info(f"Downloading meta vars:\n\t{self.meta_vars_percentage}\n\t{self.meta_vars_share}")
 
     def _handle_model_params(self):
+        # check if model, variable, and experiment exists
         try:
-            self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
+            self.model_node_link = self.MODEL_SOURCES[self.model]["node_link"]
         except KeyError:
             if self.model is not None:
                 self.logger.info(f"WARNING: Model {self.model} unknown.")
-                # TODO cause an error here and exit (move to next download item)
-                self.model = next(iter(MODEL_SOURCES))
-                self.logger.info(f"Using : {self.model}")
-            self.model_node_link = MODEL_SOURCES[self.model]["node_link"]
+                raise ValueError(
+                    "Model {} is not in the list of supported models. Consider adding manually to esgf_server.py".format(
+                        self.model
+                    )
+                )
+            self.model_node_link = self.MODEL_SOURCES[self.model]["node_link"]
 
     def _generate_plain_emission_vars(self):
         if self.use_plain_emission_vars:
@@ -175,7 +210,7 @@ class Downloader:
         variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
         self.logger.info(f"Cleaned variables : {variables}")
         for v in variables:
-            t = get_keys_from_value(d=VAR_SOURCE_LOOKUP, val=v, logger=self.logger)
+            t = get_keys_from_value(d=self.VAR_SOURCE_LOOKUP, val=v, logger=self.logger)
             if t == "model":
                 self.model_vars.append(v)
             elif t == "raw":
@@ -227,9 +262,15 @@ class Downloader:
 
         ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
-        # CONTINUE DEBUGGING HERE
-
         variants = list(ctx.facet_counts["variant_label"])
+
+        if len(variants) < 1:
+            self.logger.info(
+                "No items were found for this request. Please check on the esgf server if the combination of your model/scenarios/variables exists."
+            )
+            raise ValueError(
+                "Downloader did not find any items on esgf for your request with: Project {project}, Experiment {experiment}, Model {self.model}, Variable {variable}."
+            )
 
         self.logger.info(f"Available variants : {variants}\n")
         self.logger.info(f"Length : {len(variants)}")
@@ -390,13 +431,13 @@ class Downloader:
         for variable in self.model_vars:
             self.logger.info(f"Downloading data for variable: {variable}")
             for experiment in self.experiments:
-                if experiment in SUPPORTED_EXPERIMENTS:
+                if experiment in self.SUPPORTED_EXPERIMENTS:
                     self.logger.info(f"Downloading data for experiment: {experiment}")
-                    self.download_from_model_single_var(variable=variable, experiment=experiment)
+                    self.download_from_model_single_var(project=self.project, variable=variable, experiment=experiment)
                 else:
                     self.logger.info(
                         f"Chosen experiment {experiment} not supported. All supported experiments: "
-                        f"{SUPPORTED_EXPERIMENTS}. Skipping."
+                        f"{self.SUPPORTED_EXPERIMENTS}. Skipping."
                     )
 
     def download_raw_input(self):
@@ -449,6 +490,13 @@ def download_from_config_file(config: str, logger: logging.Logger = LOGGER):
             config = pathlib.Path(config)
         config = get_yaml_config(config)
     try:
+        project = config["project"]
+    except KeyError as e:
+        logger.warning(
+            f"No project specified. Assuming CMIP6 data should be downloaded. Caught the following exception: {e}"
+        )
+        project = "CMIP6"
+    try:
         models = config["models"]
     except KeyError as e:
         logger.warning(f"Caught the following exception but continuing : {e}")
@@ -456,8 +504,22 @@ def download_from_config_file(config: str, logger: logging.Logger = LOGGER):
         models = [None]
     downloader_kwargs = config["downloader_kwargs"]
     logger.info(f"Downloader kwargs : {downloader_kwargs}")
-    for m in models:
-        downloader = Downloader(model=m, **downloader_kwargs, logger=logger)
+
+    # TODO @Francis I think we need to implement an abstract Downloader.
+    # Each project should get its own Downloader: CMIPXDownloader, input4mipsDownloader, etc.
+    # These classes only need to implement the different downloading functions needed for their specific datasets.
+    # Here, I am just doing the naive way with the stuff we have right now:
+    if project == "input4mips":
+        downloader = Downloader(project=project, model=models, **downloader_kwargs, logger=logger)
         downloader.download_raw_input()
-        if m is not None:
+    elif (project == "CMIP6") or (project == "CMIP6Plus"):
+        for m in models:
+            downloader = Downloader(project=project, model=m, **downloader_kwargs, logger=logger)
             downloader.download_from_model()
+    else:
+        logger.info(
+            f"Project {project} is not supported. Consider implementing your own downloader childclass for this."
+        )
+        raise ValueError(
+            f"Project {project} is not supported. Currently supported projects are: CMIP6, CMIP6Plus, input4mips."
+        )
