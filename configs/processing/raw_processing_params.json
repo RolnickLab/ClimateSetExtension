@@ -1,0 +1,52 @@
+{
+  "calendar": "365_day",
+  "units": {
+    "tas": "K",
+    "pr": "kg m-2 s-1",
+    "SO2_em_AIR_anthro": "kg m-2 s-1",
+    "SO2_em_anthro": "kg m-2 s-1",
+    "SO2_em_openburning": "kg m-2 s-1",
+    "SO2_em_biomassburning": "kg m-2 s-1",
+    "SO2_anthro_biomassburning": "kg m-2 s-1",
+    "CO2_em_AIR_anthro": "kg m-2 s-1",
+    "CO2_em_anthro": "kg m-2 s-1",
+    "CO2_em_openburning": "kg m-2 s-1",
+    "CO2_em_biomassburning": "kg m-2 s-1",
+    "CO2_anthro_biomassburning": "kg m-2 s-1",
+    "CH4_em_AIR_anthro": "kg m-2 s-1",
+    "CH4_em_anthro": "kg m-2 s-1",
+    "CH4_em_openburning": "kg m-2 s-1",
+    "CH4_em_biomassburning": "kg m-2 s-1",
+    "CH4_anthro_biomassburning": "kg m-2 s-1",
+    "BC_em_AIR_anthro": "kg m-2 s-1",
+    "BC_em_anthro": "kg m-2 s-1",
+    "BC_em_openburning": "kg m-2 s-1",
+    "BC_em_biomassburning": "kg m-2 s-1",
+    "BC_anthro_biomassburning": "kg m-2 s-1"
+  },
+  "50_km": {
+    "input4mips_lon": {
+      "min": -179.75,
+      "max": 179.75,
+      "step": 0.5
+    },
+    "input4mips_lat": {
+      "min": -89.75,
+      "max": 89.75,
+      "step": 0.5
+    }
+  },
+  "250_km": {
+    "cmip6_lon": {
+      "min": 0,
+      "max": 357.5,
+      "step": 2.5
+    },
+    "cmip6_lat": {
+      "min": -90,
+      "max": 90,
+      "step": 1.8947368421052602
+    }
+  }
+
+}
