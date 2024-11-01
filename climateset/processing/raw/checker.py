@@ -287,9 +287,8 @@ class RawFileChecker(AbstractFileChecker):
             if actual_var != named_var:
                 self.results["var_ok"] = False
                 LOGGER.warning(
-                    "The following file contains the variable {}, but the variable {} was expected: \n{}".format(
-                        actual_var, named_var, self.input_file
-                    )
+                    f"The following file contains the variable {actual_var}, but the variable {named_var} "
+                    f"was expected: \n{self.input_file}"
                 )
             else:
                 self.results["var_ok"] = True
@@ -337,9 +336,8 @@ class RawFileChecker(AbstractFileChecker):
             if actual_spat_res != named_spat_res:
                 self.results["res_ok"] = False
                 LOGGER.warning(
-                    "The following file has the nominal resolution {}, but the resolution {} was expected: \n{}".format(
-                        actual_spat_res, named_spat_res, self.input_file
-                    )
+                    f"The following file has the nominal resolution {actual_spat_res}, but the resolution "
+                    f"{named_spat_res} was expected: \n{self.input_file}"
                 )
             else:
                 self.results["res_ok"] = True
@@ -349,9 +347,8 @@ class RawFileChecker(AbstractFileChecker):
             if actual_temp_res != named_temp_res:
                 self.dataset["freq_ok"] = False
                 LOGGER.warning(
-                    "The following file has the temporal frequency {}, but the frequency {} was expected: \n{}".format(
-                        actual_temp_res, named_temp_res, self.input_file
-                    )
+                    f"The following file has the temporal frequency {actual_temp_res}, but the frequency "
+                    f"{named_temp_res} was expected: \n{self.input_file}"
                 )
             else:
                 self.dataset["freq_ok"] = True
@@ -377,9 +374,7 @@ class RawFileChecker(AbstractFileChecker):
             if found_unit != expected_unit:
                 self.results["units_ok"] = False
                 LOGGER.warning(
-                    "The following file has the unit {}, but the unit {} was expected: \n{}".format(
-                        found_unit, expected_unit, self.input_file
-                    )
+                    f"The following file has the unit {found_unit}, but the unit {expected_unit} was expected: \n{self.input_file}"
                 )
             else:
                 self.results["units_ok"] = True
