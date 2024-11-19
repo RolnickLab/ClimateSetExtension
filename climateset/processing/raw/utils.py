@@ -1,5 +1,9 @@
 from pathlib import Path
 
+from climateset.utils import create_logger
+
+LOGGER = create_logger(__name__)
+
 
 def create_generic_output_path(output_dir: Path, path: str, file: str) -> Path:
     """Creates an output path and the necessary parent directories.

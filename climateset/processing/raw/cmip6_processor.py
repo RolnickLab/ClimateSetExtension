@@ -9,13 +9,13 @@ import xmip
 import xmip.preprocessing as xmip_preprocessing
 from tqdm import tqdm
 
-from climateset.processing.raw.abstract_raw_processing import AbstractRawProcesser
+from climateset.processing.raw.abstract_raw_processor import AbstractRawProcessor
 from climateset.processing.raw.utils import create_generic_output_path
 
 
 # Attention: we need to write _desired_units for our all our data
 # Attention: Before you apply, make sure this is only applied to CMIP6 data!
-class ClimateModelProcesser(AbstractRawProcesser):
+class ClimateModelProcesser(AbstractRawProcessor):
     """
     Can be called to apply xmip preprocessing.
 
@@ -36,7 +36,6 @@ class ClimateModelProcesser(AbstractRawProcesser):
         correct_time_axis: bool = True,
         correct_calendar: bool = True,
         sum_levels: bool = True,
-        **kwargs,
     ):
         """Init function for xmip processer
         Args:
@@ -111,7 +110,7 @@ class ClimateModelProcesser(AbstractRawProcesser):
         xmip.preprocessing._desired_units[var] = unit
 
     # share this with input4mips?
-    def preprocess_subdir(
+    def process_directory(
         self,
         sub_dir: Path,
         output_dir: Path,

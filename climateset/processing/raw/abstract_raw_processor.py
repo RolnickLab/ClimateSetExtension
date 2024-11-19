@@ -12,7 +12,7 @@ from climateset.utils import create_logger, get_json_config
 LOGGER = create_logger(__name__)
 
 
-class AbstractRawProcesser(ABC):
+class AbstractRawProcessor(ABC):
     """Abstract class for raw processing."""
 
     def __init__(
@@ -53,7 +53,7 @@ class AbstractRawProcesser(ABC):
         """Returns the name tag of the subclass."""
 
     @abstractmethod
-    def preprocess_subdir(
+    def process_directory(
         self,
         input_dir: Path,
         cleaned_dir: Path,
@@ -99,6 +99,6 @@ class AbstractRawProcesser(ABC):
                 self.processing_steps.append(step)
 
     def list_available_steps(self):
-        step_list = [step for step in self.available_steps.keys() if not step.startswith("_")]
+        step_list = [step for step in self.available_steps if not step.startswith("_")]
         LOGGER.info(f"Available steps: {step_list}")
         return step_list

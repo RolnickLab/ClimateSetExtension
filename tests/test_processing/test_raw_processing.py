@@ -5,7 +5,7 @@ from xarray import open_dataset
 
 from climateset import DATA_DIR
 from climateset.processing.raw.checker import BasicDirectoryChecker
-from climateset.processing.raw.input4mips_processing import (
+from climateset.processing.raw.input4mips.input4mips_processing import (
     AVAILABLE_INPUT4MIPS_PROCESSING_STEPS,
     Input4MipsEmissionProcesser,
 )
@@ -48,7 +48,7 @@ def test_emission_processing_add_processing_steps(simple_emission_processing_obj
 
 def test_emission_processing_add_individual_steps(simple_emission_processing_object):
     simple_emission_processing_object.add_correct_names_step()
-    simple_emission_processing_object.add_fix_co2_step()
+    simple_emission_processing_object.add_reorder_ssp_co2_dimensions_step()
     simple_emission_processing_object.add_create_fire_files()
     simple_emission_processing_object.add_correct_units_step()
     simple_emission_processing_object.add_correct_calendar_step()

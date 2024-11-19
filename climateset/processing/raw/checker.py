@@ -178,18 +178,11 @@ class RawDirectoryChecker(AbstractDirectoryChecker):
     def add_variables_check(self):
         self.checker_steps.append(VERIFY_VARIABLES)
 
-    def check_directory(self, log_file: Path = None, model: str = "") -> bool:
+    def check_directory(self) -> bool:
         """
         Checking all files in a sub dir.
 
         TAKES TIME.
-        Args:
-            sub_dir (Path): The dir that should be checked
-            log_file (Path): Where problematic files should be logged
-            mode (str): 'w' writes the logs into the file, 'a' appends it to
-                an existing file.
-            model (str): Default is "". Set this, if you want that only
-                the data of this model is checked.
         Returns:
             bool: True if all checks were successful, False if not
         """
@@ -374,7 +367,8 @@ class RawFileChecker(AbstractFileChecker):
             if found_unit != expected_unit:
                 self.results["units_ok"] = False
                 LOGGER.warning(
-                    f"The following file has the unit {found_unit}, but the unit {expected_unit} was expected: \n{self.input_file}"
+                    f"The following file has the unit {found_unit}, but the unit {expected_unit} "
+                    f"was expected: \n{self.input_file}"
                 )
             else:
                 self.results["units_ok"] = True
