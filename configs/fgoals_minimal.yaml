@@ -1,4 +1,0 @@
-models: ["FGOALS-g3"]
-downloader_kwargs:
-  variables: ["tas"]
-  experiments: ["ssp370"]

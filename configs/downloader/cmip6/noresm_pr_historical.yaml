@@ -1,6 +1,6 @@
-project: "CMIP6"
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["pr"]
-  experiments: ["historical"]
-  max_ensemble_members: 1
+CMIP6:
+  models: ["NorESM2-LM"]
+  downloader_kwargs:
+    variables: ["pr"]
+    experiments: ["historical"]
+    max_ensemble_members: 1

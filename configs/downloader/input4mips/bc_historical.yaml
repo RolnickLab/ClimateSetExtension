@@ -1,5 +1,4 @@
-project: "input4mips"
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["BC"]
-  experiments: ["historical"]
+input4MIPs:
+  downloader_kwargs:
+    variables: ["BC"]
+    experiments: ["historical"]

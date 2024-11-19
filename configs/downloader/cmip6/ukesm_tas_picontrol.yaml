@@ -1,5 +1,5 @@
-project: "CMIP6"
-models: ["UKESM1-0-LL"]
-downloader_kwargs:
-  variables: ["tas"]
-  experiments: ["piControl"]
+CMIP6:
+  models: ["UKESM1-0-LL"]
+  downloader_kwargs:
+    variables: ["tas"]
+    experiments: ["piControl"]

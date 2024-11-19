@@ -1,5 +1,5 @@
-project: "CMIP6"
-models: ["AWI-CM-1-1-HR"]
-downloader_kwargs:
-  variables: ["sithick"]
-  experiments: ["control-1950"]
+CMIP6:
+  models: ["AWI-CM-1-1-HR"]
+  downloader_kwargs:
+    variables: ["sithick"]
+    experiments: ["control-1950"]
