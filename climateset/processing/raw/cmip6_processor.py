@@ -1,3 +1,4 @@
+# TODO Adapt module for new pipeline pattern
 import os
 import re
 import subprocess
