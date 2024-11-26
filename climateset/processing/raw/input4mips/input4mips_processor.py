@@ -76,6 +76,7 @@ class Input4MipsEmissionProcessor(AbstractRawProcessor):
         spat_load: str = "map",
         temp_load: str = "mon",
         ghg_list: list = None,
+        ghg_sum_name: str = None,
         meta_data: Path = None,
         fire_cases: bool = True,
         force_sum_sectors: list = None,
@@ -156,6 +157,7 @@ class Input4MipsEmissionProcessor(AbstractRawProcessor):
         self.ghg_list = ghg_list
         if not self.ghg_list:
             self.ghg_list = ["BC_sum", "CH4_sum", "SO2_sum"]
+        self.ghg_sum_name = ghg_sum_name
         self.meta_data = meta_data
         self.fire_cases = fire_cases
         self.force_sum_sectors = force_sum_sectors
@@ -165,9 +167,14 @@ class Input4MipsEmissionProcessor(AbstractRawProcessor):
         self.input_res = input_res
 
         self.available_steps = {
-            REORDER_SSP_CO2: {ORDER: 1, PROCESSOR_STEP: RenameBiomassBurningFilesStep()},
-            CORRECT_NAMES: {ORDER: 2, PROCESSOR_STEP: ReorderSSPCO2DimensionsStep()},
-            CREATE_FIRE_FILES: {ORDER: 3, PROCESSOR_STEP: CreateAnthroFireFilesStep()},
+            CORRECT_NAMES: {ORDER: 1, PROCESSOR_STEP: RenameBiomassBurningFilesStep()},
+            REORDER_SSP_CO2: {ORDER: 2, PROCESSOR_STEP: ReorderSSPCO2DimensionsStep()},
+            CREATE_FIRE_FILES: {
+                ORDER: 3,
+                PROCESSOR_STEP: CreateAnthroFireFilesStep(
+                    metadata_directory=self.meta_data, cdo_operators=self.cdo_operators
+                ),
+            },
             CORRECT_CALENDAR: {ORDER: 4, PROCESSOR_STEP: self._cdo_add_correct_calendar},
             CORRECT_TIME_AXIS: {ORDER: 5, PROCESSOR_STEP: self._cdo_add_correct_time_axis},
             SUM_LEVELS: {ORDER: 6, PROCESSOR_STEP: self._cdo_add_sum_levels},
@@ -187,7 +194,12 @@ class Input4MipsEmissionProcessor(AbstractRawProcessor):
                     input_freq=self.input_freq,
                 ),
             },
-            MERGE_GHG: {ORDER: 11, PROCESSOR_STEP: MergeGHG()},
+            MERGE_GHG: {
+                ORDER: 11,
+                PROCESSOR_STEP: MergeGHG(
+                    working_dir=self.working_directory, ghg_list=self.ghg_list, ghg_sum_name=self.ghg_sum_name
+                ),
+            },
         }
 
         # TODO CO2 baseline - where??
@@ -256,48 +268,34 @@ class Input4MipsEmissionProcessor(AbstractRawProcessor):
         """
         return bool(re.search("input4mip", str(input_file), re.IGNORECASE))
 
-    def process_directory(
-        self,
-        input_dir: Path,
-        cleaned_dir: Path,
-        processed_dir: Path,
-        load_dir: Path,
-        overwrite: bool = False,
-        silent: bool = False,
-        sum_sec_input_res: str = "50_km",
-        sum_sec_input_freq: str = "mon",
-    ):
+    def process_directory(self):
         """
-        Applying all the stuff as decided in the init function. Most of the functions build upon each other, i.e. you
-        cannot apply store_totals if you haven't used merge_ghg before. To keep things modular the user can still decide
-        which ones to apply (e.g. because some things may have been applied earlier / are not necessary). Just be aware
-        that things break if you are not making sure that the order is followed.
+        Applying all the stuff as decided in the init function.
 
-        Args:
-            input_dir (Path): To which directory the processing should be applied.
-            cleaned_dir (Path): Where cleaned data should be stored. This is used
-                for the "preprocess" steps.
-            processed_dir (Path): Where processed data is stored. This is used
-                for sum_sectors. Simple preprocessing is directly applied on
-                raw data here.
-            load_dir (Path): Where data is stored that is strongly modified and
-                ready to be loaded. This is used for merge_ghg and store_totals.
-            overwrite (bool): If the data should be overwritten if it already
-                exists. Default False.
-            silent (bool): If this should be processed silently.
-            sum_sec_input_res:
-            sum_sec_input_freq:
+        Most of the functions build upon each other, i.e. you cannot apply store_totals if you haven't used merge_ghg
+        before. To keep things modular the user can still decide which ones to apply (e.g. because some things may have
+        been applied earlier / are not necessary). Just be aware that things break if you are not making sure that the
+        order is followed.
         """
-        if any([process in self.processing_steps for process in [CORRECT_CALENDAR, CORRECT_TIME_AXIS, SUM_LEVELS]]):
+        special_processes = [
+            process for process in self.processing_steps if process in [CORRECT_CALENDAR, CORRECT_TIME_AXIS, SUM_LEVELS]
+        ]
+        if special_processes:
+            for process in special_processes:
+                self.available_steps[process][PROCESSOR_STEP]()
+                self.processing_steps.remove(process)
             self.processing_steps.append(_CDO_PROCESSING)
 
-        process_list = [self.available_steps[step] for step in self.available_steps]
+        process_list = [self.available_steps[step] for step in self.processing_steps]
         ordered_processes = sorted(process_list, key=lambda step: step[ORDER])
 
-        current_processing_directory = input_dir
-        for _, process in ordered_processes:
-            output_dir = process[PROCESSOR_STEP](current_processing_directory)
-            current_processing_directory = output_dir
+        current_processing_directory = self.input_directory
+        for process_dict in ordered_processes:
+            processing_step: AbstractProcessorStep = process_dict[PROCESSOR_STEP]
+            processing_step.execute(current_processing_directory)
+            current_processing_directory = processing_step.get_results_directory()
+
+        return current_processing_directory
 
     def _cdo_add_correct_calendar(self):
         self.cdo_operators.append(f"{CDO_SET_CALENDAR},{self.calendar}")
@@ -332,14 +330,18 @@ class ReorderSSPCO2DimensionsStep(AbstractProcessorStep):
 
 
 class CreateAnthroFireFilesStep(AbstractProcessorStep):
-    def __init__(self, metadata_directory, calendar, overwrite=False):
+    def __init__(self, metadata_directory, cdo_operators, overwrite=False):
         super().__init__()
         self.metadata_directory = metadata_directory
+        self.cdo_operators = cdo_operators
         self.overwrite = overwrite
 
     def execute(self, input_directory):
         self.results_directory = create_anthro_fire_directory(
-            input_directory, meta_data=self.metadata_directory, overwrite=self.overwrite
+            input_directory,
+            meta_data=self.metadata_directory,
+            cdo_operators=self.cdo_operators,
+            overwrite=self.overwrite,
         )
 
 
