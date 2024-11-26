@@ -53,28 +53,9 @@ class AbstractRawProcessor(ABC):
         """Returns the name tag of the subclass."""
 
     @abstractmethod
-    def process_directory(
-        self,
-        input_dir: Path,
-        cleaned_dir: Path,
-        processed_dir: Path,
-        load_dir: Path,
-        overwrite: bool,
-        silent: bool,
-        sum_sec_input_res: str,
-        sum_sec_input_freq: str,
-    ):
+    def process_directory(self):
         """
         Preprocessing a subdir - must be implemented for each subclass.
-        Args:
-            input_dir:
-            cleaned_dir:
-            processed_dir:
-            load_dir:
-            overwrite:
-            silent:
-            sum_sec_input_res:
-            sum_sec_input_freq:
 
         Returns:
 
