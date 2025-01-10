@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from climateset.processing.abstract_processor_step import process_steps
+from climateset.processing.processor_step import process_steps
 from climateset.processing.raw.input4mips.input4mips_processor import (
     CorrectUnitsStep,
     CreateAnthroFireFilesStep,

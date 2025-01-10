@@ -1,9 +1,11 @@
+"""This Module contains a Processor class that automates ProcessorStep processes, as well as individual ProcessorStep
+classes that can be used independently for more customized applications."""
 import re
 from pathlib import Path
 from typing import Union
 
 from climateset import PROCESSED_DATA
-from climateset.processing.abstract_processor_step import AbstractProcessorStep
+from climateset.processing.processor_step import AbstractProcessorStep
 from climateset.processing.raw.abstract_raw_processor import AbstractRawProcessor
 from climateset.processing.raw.checker import AbstractDirectoryChecker
 from climateset.processing.raw.input4mips.processing import (
