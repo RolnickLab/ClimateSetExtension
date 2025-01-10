@@ -1,3 +1,4 @@
+import json
 import logging
 import pathlib
 import sys
@@ -85,7 +86,7 @@ def get_yaml_config(yaml_config_file: Union[str, pathlib.Path], logger: logging.
     if isinstance(yaml_config_file, str):
         yaml_config_file = pathlib.Path(yaml_config_file)
     potential_paths = [
-        pathlib.Path(yaml_config_file),
+        yaml_config_file,
         CONFIGS / yaml_config_file,
         CONFIGS / f"{yaml_config_file}.yaml",
         CONFIGS / f"{yaml_config_file}.yml",
@@ -109,4 +110,47 @@ def get_yaml_config(yaml_config_file: Union[str, pathlib.Path], logger: logging.
             return yaml.safe_load(file)
     except yaml.YAMLError as e:
         logger.warning(f"Error loading YAML file [{config_filepath}]: {e}")
+        return {}
+
+
+def get_json_config(json_config_file: Union[str, pathlib.Path], logger=LOGGER) -> dict:
+    """
+    This function takes in the path, or name of the file if it can be found in the config/ folder, with of without the
+    extension, and returns the values of the file in a dictionary format.
+
+    Ex. For a file named app_config.json, directly in the config/ folder,
+        the function could be called like so : `params = get_json_config('app_config')`
+
+    Args:
+        json_config_file: Path to JSON config file. If config file is in the config folder,
+        logger: Logger to handle messaging, by default LOGGER
+
+    Returns:
+        Dictionary of JSON configuration values
+    """
+    if isinstance(json_config_file, str):
+        json_config_file = pathlib.Path(json_config_file)
+    potential_paths = [
+        json_config_file,
+        CONFIGS / json_config_file,
+        CONFIGS / f"{json_config_file}.json",
+    ]
+
+    config_filepath = None
+    for path in potential_paths:
+        if path.exists():
+            config_filepath = path
+            logger.info(f"JSON config file [{str(path)}] found.")
+            break
+
+    if not config_filepath:
+        logger.error(f"JSON config file [{json_config_file}] not found.")
+        return {}
+
+    try:
+        with config_filepath.open("r", encoding="UTF-8") as file:
+            logger.info(f"Loading JSON config file [{config_filepath}].")
+            return json.load(file)
+    except json.JSONDecodeError as e:
+        logger.warning(f"Error loading JSON file [{config_filepath}]: {e}")
         return {}

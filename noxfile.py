@@ -55,9 +55,9 @@ def docformatter(session):
 @nox.session()
 def check(session):
     paths = get_paths(session)
+    session.run("poetry", "run", "flynt", *paths["all"], external=True)
     session.run("poetry", "run", "black", "--check", *paths["all"], external=True)
     session.run("poetry", "run", "isort", *paths["all"], "--check", external=True)
-    session.run("poetry", "run", "flynt", *paths["all"], external=True)
     session.run(
         "poetry",
         "run",
@@ -74,9 +74,9 @@ def check(session):
 @nox.session()
 def fix(session):
     paths = get_paths(session)
+    session.run("poetry", "run", "flynt", *paths["all"], external=True)
     session.run("poetry", "run", "black", *paths["all"], external=True)
     session.run("poetry", "run", "isort", *paths["all"], external=True)
-    session.run("poetry", "run", "flynt", *paths["all"], external=True)
     session.run(
         "poetry",
         "run",

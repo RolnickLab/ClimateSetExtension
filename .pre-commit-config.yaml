@@ -17,6 +17,12 @@ repos:
       - id: check-added-large-files
         args: ["--maxkb=5000"]
 
+  - repo: https://github.com/ikamensh/flynt
+    rev: 1.0.1
+    hooks:
+      - id: flynt
+        args: ["--fail-on-change"]
+
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
@@ -26,12 +32,6 @@ repos:
     rev: 5.13.2
     hooks:
       - id: isort
-
-  - repo: https://github.com/ikamensh/flynt
-    rev: 1.0.1
-    hooks:
-      - id: flynt
-        args: ["--fail-on-change"]
 
   - repo: https://github.com/PyCQA/docformatter
     rev: v1.7.5
