@@ -7,7 +7,7 @@ from pyesgf.search import SearchConnection
 from climateset import RAW_DATA
 from climateset.download.constants.esgf import (
     ESGF_MODEL_OUTPUT_LIST,
-    ESGF_PROJECTS,
+    ESGF_PROJECTS_CONSTANTS,
     ESGF_RAW_INPUT_LIST,
 )
 from climateset.download.utils import (
@@ -113,12 +113,12 @@ class Downloader:
     # @Francis (JK) I am still not happy about this function. Please let me know if I can improve this bit
     def _init_project_constants(self):
         """Assign/init attributed depending on the project."""
-        if self.project not in ESGF_PROJECTS:
+        if self.project not in ESGF_PROJECTS_CONSTANTS:
             self.logger.info(f"Project {self.project} has not been implemented in the Downloader yet.")
             raise ValueError(
                 f"Project {self.project} is not recognized. Consider adding a constant class in download/constants and the esgf.py file."
             )
-        proj_constants = ESGF_PROJECTS[self.project]
+        proj_constants = ESGF_PROJECTS_CONSTANTS[self.project]
 
         # init shared constants
         self.node_link = proj_constants.NODE_LINK
@@ -515,7 +515,7 @@ def download_from_config_file(config: str, logger: logging.Logger = LOGGER):
         config = get_yaml_config(config)
 
     # get the supported esgf projects (cmip6, cmip6plus, input4mips)
-    implemented_projects = ESGF_PROJECTS.keys()
+    implemented_projects = ESGF_PROJECTS_CONSTANTS.keys()
 
     # flag to check if at least a single project was found
     project_found = False
