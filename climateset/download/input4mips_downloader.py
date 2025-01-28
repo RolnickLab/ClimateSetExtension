@@ -1,6 +1,7 @@
 from abstract_downloader import AbstractDownloader
 from pyesgf.search import SearchConnection
 
+from climateset.download.abstract_downloader_config import Input4mipsDownloaderConfig
 from climateset.download.utils import (
     _handle_base_search_constraints,
     download_metadata_variable,
@@ -13,7 +14,8 @@ LOGGER = create_logger(__name__)
 
 
 class Input4MipsDownloader(AbstractDownloader):
-    def __init__(self):
+    def __init__(self, config: Input4mipsDownloaderConfig):
+        self.config: Input4mipsDownloaderConfig = config
         self.raw_vars = ""
         self.logger = LOGGER
 
@@ -26,17 +28,17 @@ class Input4MipsDownloader(AbstractDownloader):
             self.logger.info(f"Downloading data for variable: {variable}")
             self.download_raw_input_single_var(variable=variable, institution_id=institution_id)
 
-        if self.download_biomass_burning & ("historical" in self.experiments):
-            for variable in self.biomass_vars:
+        if self.config.download_biomass_burning & ("historical" in self.config.experiments):
+            for variable in self.config.biomass_vars:
                 self.logger.info(f"Downloading biomassburing data for variable: {variable}")
                 self.download_raw_input_single_var(variable=variable, institution_id="VUA")
 
-        if self.download_metafiles:
-            for variable in self.meta_vars_percentage:
+        if self.config.download_metafiles:
+            for variable in self.config.meta_vars_percentage:
                 # percentage are historic and have no scenarios
                 self.logger.info(f"Downloading meta percentage data for variable: {variable}")
                 self.download_meta_historic_biomassburning_single_var(variable=variable, institution_id="VUA")
-            for variable in self.meta_vars_share:
+            for variable in self.config.meta_vars_share:
                 self.logger.info(f"Downloading meta openburning share data for variable: {variable}")
                 self.download_raw_input_single_var(variable=variable, institution_id="IAMC")
 
@@ -63,7 +65,7 @@ class Input4MipsDownloader(AbstractDownloader):
         self.logger.info("Using download_raw_input_single_var() function")
 
         facets = "project,frequency,variable,nominal_resolution,version,target_mip,grid_label"
-        conn = SearchConnection(url=self.model_node_link, distrib=False)
+        conn = SearchConnection(url=self.config.node_link, distrib=False)
 
         ctx = conn.new_context(
             project=project,
@@ -87,7 +89,10 @@ class Input4MipsDownloader(AbstractDownloader):
             self.logger.info(f"Result len  {len(results)}")
             if len(results) > 0:
                 download_raw_input_variable(
-                    institution_id=institution_id, search_results=results, variable=variable, base_path=self.data_dir
+                    institution_id=institution_id,
+                    search_results=results,
+                    variable=variable,
+                    base_path=self.config.data_dir,
                 )
 
     def download_meta_historic_biomassburning_single_var(
@@ -113,7 +118,7 @@ class Input4MipsDownloader(AbstractDownloader):
         variable_id = variable.replace("_", "-")
         variable_search = f"percentage_{variable_id.replace('-', '_').split('_')[-1]}"
         self.logger.info(variable, variable_id, institution_id)
-        conn = SearchConnection(url=self.model_node_link, distrib=False)
+        conn = SearchConnection(url=self.config.node_link, distrib=False)
         facets = "nominal_resolution,version"
         ctx = conn.new_context(
             project=project,
@@ -137,5 +142,5 @@ class Input4MipsDownloader(AbstractDownloader):
         self.logger.info(f"List of results :\n{result_list}")
 
         download_metadata_variable(
-            institution_id=institution_id, search_results=results, variable=variable, base_path=self.data_dir
+            institution_id=institution_id, search_results=results, variable=variable, base_path=self.config.data_dir
         )
