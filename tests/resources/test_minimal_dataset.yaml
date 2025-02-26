@@ -1,7 +1,7 @@
 CMIP6:
-  model: "NorESM2-LM"
+  models: ["NorESM2-LM"]
   variables: ["tas"]
-  experiments: ["historical","ssp126"]
+  experiments: ["ssp126"]
 input4MIPs:
   variables: ["CO2", "CH4"]
   experiments: ["historical","ssp126"]

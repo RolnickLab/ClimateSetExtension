@@ -46,8 +46,7 @@ EXPECTED_MINIMAL_META_HISTORIC_CALLS = [
 ]
 
 EXPECTED_MINIMAL_MODEL_CALLS = [
-    call(project="CMIP6", variable="tas", experiment="historical"),
-    call(project="CMIP6", variable="tas", experiment="ssp126"),
+    call(model="NorESM2-LM", project="CMIP6", variable="tas", experiment="ssp126"),
 ]
 
 
@@ -106,8 +105,8 @@ def test_downloader_base_params(input4mips_downloader_object, cmip6_downloader_o
     assert input4mips_downloader_object.config.project == INPUT4MIPS
     assert input4mips_downloader_object.config.experiments == ["historical", "ssp126"]
     assert cmip6_downloader_object.config.project == CMIP6
-    assert cmip6_downloader_object.config.model == ["NorESM2-LM"]
-    assert cmip6_downloader_object.config.experiments == ["historical", "ssp126"]
+    assert cmip6_downloader_object.config.models == ["NorESM2-LM"]
+    assert cmip6_downloader_object.config.experiments == ["ssp126"]
 
 
 def test_downloader_max_possible_member_number(cmip6_downloader_object):
@@ -150,7 +149,7 @@ def test_download_raw_input(input4mips_downloader_object, mock_raw_input_single_
 def test_download_from_model(cmip6_downloader_object, mock_model_single_var):
     cmip6_downloader_object.download()
     assert mock_model_single_var.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
-    assert mock_model_single_var.call_count == 2
+    assert mock_model_single_var.call_count == 1
 
 
 def test_download_from_config_file(
@@ -163,7 +162,7 @@ def test_download_from_config_file(
     assert mock_meta_historic_single_var.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
     assert mock_meta_historic_single_var.call_count == 6
     assert mock_model_single_var.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
-    assert mock_model_single_var.call_count == 2
+    assert mock_model_single_var.call_count == 1
 
 
 def _assert_content_is_in_wget_script(mock_call, string_content):
@@ -210,7 +209,7 @@ def test_download_meta_historic_biomassburning_single_var(input4mips_downloader_
 
 
 def test_download_from_model_single_var(cmip6_downloader_object, mock_subprocess_run):
-    cmip6_downloader_object.download_from_model_single_var(variable="tas", experiment="ssp126")
+    cmip6_downloader_object.download()
 
     expected_files = [
         "tas_Amon_NorESM2-LM_ssp126_r1i1p1f1_gn_201501-202012.nc",

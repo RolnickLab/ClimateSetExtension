@@ -14,6 +14,7 @@ from climateset.download.constants.esgf import (
     ESGF_PROJECTS_CONSTANTS,
     INPUT4MIPS,
 )
+from climateset.download.utils import match_key_in_list
 from climateset.utils import create_logger, get_yaml_config
 
 LOGGER = create_logger(__name__)
@@ -59,6 +60,41 @@ class AbstractDownloaderConfig(ABC):
         self.node_link = self.proj_constants.NODE_LINK
         self.avail_variables = self.proj_constants.VAR_SOURCE_LOOKUP
         self.avail_experiments = self.proj_constants.SUPPORTED_EXPERIMENTS
+        self.config_is_valid = True
+
+        self._validate_item_list(
+            item_list=self.variables, available_items=self.avail_variables, name_of_item="variable"
+        )
+        self._validate_item_list(
+            item_list=self.experiments, available_items=self.avail_experiments, name_of_item="experiment"
+        )
+
+    def _validate_item_list(self, item_list: list[str], available_items: list[str], name_of_item: str) -> None:
+        """
+        This small function checks that the given items (variables, models, experiments, etc.) are valid for their given
+        project (Input4MIPs, CMIP6, etc.).
+
+        Also remove unvalid items from the list of items as to not.
+
+        Args:
+            item_list: List of items to check (like self.variables, self.experiments, etc.)
+            available_items: List of available items against which to check (like self.avail_variables, etc.)
+            name_of_item: Name of item to check. Write lowercase and singular: ie. variable, experiment, etc.
+
+        Returns:
+            None
+        """
+        error_in_item_list = False
+        for e in item_list:
+            if e not in available_items:
+                self.logger.error(f"{name_of_item.capitalize()} [{e}] not supported.")
+                item_list.remove(e)
+                error_in_item_list = True
+        if error_in_item_list:
+            self.logger.error(f"Some, or all submitted {name_of_item}s were not found found - Please verify")
+            self.logger.error(f"Available {name_of_item}s: {available_items}")
+            self.logger.warning(f"List of valid submitted {name_of_item}s: {available_items}")
+            self.config_is_valid = False
 
     @staticmethod
     def _handle_yaml_config_path(config_file_name, config_path):
@@ -186,7 +222,7 @@ class CMIP6DownloaderConfig(AbstractDownloaderConfig):
         self,
         project: str,
         data_dir: str = RAW_DATA,
-        model: Union[str, None] = "NorESM2-LM",
+        models: list[str] = None,
         experiments: list[str] = None,
         ensemble_members: list[str] = None,  # preferred ensemble members used, if None not considered
         max_ensemble_members: int = 10,  # if -1 take all
@@ -196,26 +232,23 @@ class CMIP6DownloaderConfig(AbstractDownloaderConfig):
     ):
         super().__init__(project, data_dir, experiments, variables, overwrite, logger)
 
-        self.model: str = model
+        if not models:
+            models = ["NorESM2-LM"]
+        if isinstance(models, str):
+            models = [models]
+        self.models: list[str] = models
         self.avail_models = self.proj_constants.MODEL_SOURCES
         self.ensemble_members: list[str] = ensemble_members
         self.max_ensemble_members: int = max_ensemble_members
 
-
-def match_project_key(input_key: str, key_list: list[str]) -> Union[str, None]:
-    for key in key_list:
-        if input_key.lower() == key.lower():
-            return key
-        if input_key.upper() == key.upper():
-            return key
-    return None
+        self._validate_item_list(item_list=self.models, available_items=self.avail_models, name_of_item="model")
 
 
 def _get_config_from_file(config_file, config_id, config_class, logger=LOGGER):
     configs = get_yaml_config(config_file)
     config_key = config_id
     if config_key not in configs:
-        config_key = match_project_key(config_key, list(configs.keys()))
+        config_key = match_key_in_list(config_key, list(configs.keys()))
     if not config_key:
         logger.error(f"Config key [{config_id}] not found in config file [{config_file}]")
     class_configs = configs[config_key]

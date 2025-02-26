@@ -264,3 +264,12 @@ def handle_yaml_config_path(config_file_name, config_path):
         config_file_name = f"{config_file_name}.yaml"
     config_full_path = config_path / config_file_name
     return config_full_path
+
+
+def match_key_in_list(input_key: str, key_list: list[str]) -> Union[str, None]:
+    for key in key_list:
+        if input_key.lower() == key.lower():
+            return key
+        if input_key.upper() == key.upper():
+            return key
+    return None

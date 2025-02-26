@@ -38,23 +38,19 @@ class CMIP6Downloader(AbstractDownloader):
         If the constraints cannot be met, per default behaviour for the downloader to select first other
         available value
         """
-
-        for variable in self.config.variables:
-            self.logger.info(f"Downloading data for variable: {variable}")
-            for experiment in self.config.experiments:
-                if experiment not in self.config.avail_experiments:
-                    self.logger.info(
-                        f"Chosen experiment {experiment} not supported. All supported experiments: "
-                        f"{self.config.avail_experiments}. Skipping."
+        for model in self.config.models:
+            self.logger.info(f"Downloading data for model: [{model}]")
+            for variable in self.config.variables:
+                self.logger.info(f"Downloading data for variable: [{variable}]")
+                for experiment in self.config.experiments:
+                    self.logger.info(f"Downloading data for experiment: [{experiment}]")
+                    self.download_from_model_single_var(
+                        model=model, project=self.config.project, variable=variable, experiment=experiment
                     )
-                    continue
-                self.logger.info(f"Downloading data for experiment: {experiment}")
-                self.download_from_model_single_var(
-                    project=self.config.project, variable=variable, experiment=experiment
-                )
 
     def download_from_model_single_var(  # noqa: C901
         self,
+        model: str,
         variable: str,
         experiment: str,
         project: str = CMIP6,
@@ -67,6 +63,7 @@ class CMIP6Downloader(AbstractDownloader):
         (CMIP data).
 
         Args:
+            model (str): The model ID
             variable: variable ID
             experiment: experiment ID
             project: umbrella project id e.g. CMIPx
@@ -86,7 +83,7 @@ class CMIP6Downloader(AbstractDownloader):
         ctx = conn.new_context(
             project=project,
             experiment_id=experiment,
-            source_id=self.config.model,
+            source_id=model,
             variable=variable,
             facets=facets,
         )
@@ -139,7 +136,7 @@ class CMIP6Downloader(AbstractDownloader):
 
             download_model_variable(
                 project=CMIP6,
-                model_id=self.config.model,
+                model_id=model,
                 search_results=results,
                 variable=variable,
                 base_path=self.config.data_dir,
