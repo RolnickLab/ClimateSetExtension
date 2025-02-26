@@ -5,7 +5,6 @@ import subprocess
 import time
 from typing import Union
 
-import pandas as pd
 import xarray as xr
 
 from climateset import RAW_DATA
@@ -159,27 +158,29 @@ def _download_process(temp_download_path, search_results, logger: logging.Logger
 
 
 def download_raw_input_variable(
-    institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
+    project, institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
 ):
     if isinstance(base_path, str):
         base_path = pathlib.Path(base_path)
-    temp_download_path = base_path / f"raw_input_vars/{institution_id}/{variable}"
+    temp_download_path = base_path / f"{project}/raw_input_vars/{institution_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
-def download_model_variable(model_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA):
+def download_model_variable(
+    project, model_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
+):
     if isinstance(base_path, str):
         base_path = pathlib.Path(base_path)
-    temp_download_path = base_path / f"model_vars/{model_id}/{variable}"
+    temp_download_path = base_path / f"{project}/{model_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
 def download_metadata_variable(
-    institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
+    project, institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
 ):
     if isinstance(base_path, str):
         base_path = pathlib.Path(base_path)
-    temp_download_path = base_path / f"meta_vars/{institution_id}/{variable}"
+    temp_download_path = base_path / f"{project}/meta_vars/{institution_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
@@ -200,25 +201,6 @@ def get_grid_label(context, default_grid_label, logger=LOGGER):
         grid_label = grid_label_list[0]
         logger.info(f"Choosing grid {grid_label} instead.")
     return grid_label
-
-
-def get_max_ensemble_member_number(df_model_source: pd.DataFrame, experiments: list[str], model: str, logger=LOGGER):
-    if model is not None:
-        if model not in df_model_source["source_id"].tolist():
-            logger.info(f"Model {model} not supported.")
-            raise AttributeError
-        model_id = df_model_source.index[df_model_source["source_id"] == model].values
-        # get ensemble members per scenario
-        max_ensemble_members_list = df_model_source["num_ensemble_members"][model_id].values.tolist()[0].split(" ")
-        scenarios = df_model_source["scenarios"][model_id].values.tolist()[0].split(" ")
-        max_ensemble_members_lookup = {}
-        for s, m in zip(scenarios, max_ensemble_members_list):
-            max_ensemble_members_lookup[s] = int(m)
-        filtered_experiments = (e for e in experiments if e != "historical")
-        max_possible_member_number = min(
-            max_ensemble_members_lookup[e] for e in filtered_experiments
-        )  # TODO fix historical
-    return max_possible_member_number
 
 
 def get_upload_version(context, preferred_version, logger=LOGGER):
@@ -262,7 +244,7 @@ def get_frequency(context, default_frequency, logger=LOGGER):
     return frequency
 
 
-def _handle_base_search_constraints(ctx, default_frequency, default_grid_label):
+def handle_base_search_constraints(ctx, default_frequency, default_grid_label):
     grid_label = get_grid_label(context=ctx, default_grid_label=default_grid_label)
     if grid_label:
         ctx = ctx.constrain(grid_label=grid_label)
@@ -273,3 +255,12 @@ def _handle_base_search_constraints(ctx, default_frequency, default_grid_label):
     if frequency:
         ctx = ctx.constrain(frequency=frequency)
     return ctx
+
+
+def handle_yaml_config_path(config_file_name, config_path):
+    if isinstance(config_path, str):
+        config_path = pathlib.Path(config_path)
+    if not config_file_name.endswith(".yaml"):
+        config_file_name = f"{config_file_name}.yaml"
+    config_full_path = config_path / config_file_name
+    return config_full_path

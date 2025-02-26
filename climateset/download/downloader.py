@@ -5,17 +5,26 @@ from typing import Union
 from pyesgf.search import SearchConnection
 
 from climateset import RAW_DATA
+from climateset.download.cmip6_downloader import CMIP6Downloader
 from climateset.download.constants.esgf import (
+    CMIP6,
     ESGF_MODEL_OUTPUT_LIST,
     ESGF_PROJECTS_CONSTANTS,
-    ESGF_RAW_INPUT_LIST,
+    INPUT4MIPS,
 )
+from climateset.download.downloader_config import (
+    AVAILABLE_CONFIGS,
+    create_cmip6_downloader_config_from_file,
+    create_input4mips_downloader_config_from_file,
+    match_project_key,
+)
+from climateset.download.input4mips_downloader import Input4MipsDownloader
 from climateset.download.utils import (
-    _handle_base_search_constraints,
     download_metadata_variable,
     download_model_variable,
     download_raw_input_variable,
     get_upload_version,
+    handle_base_search_constraints,
 )
 from climateset.utils import create_logger, get_yaml_config
 
@@ -269,7 +278,6 @@ class Downloader:
             preferred_version: data upload version, if 'latest', the newest version will get selected always
             default_grid_label: default gridding method in which the data is provided
         """
-        conn = SearchConnection(url=self.node_link, distrib=False)
 
         facets = (
             "project,experiment_id,source_id,variable,frequency,variant_label,variable, nominal_resolution, "
@@ -278,6 +286,9 @@ class Downloader:
 
         self.logger.info("Using download_from_model_single_var() function")
 
+        # Search context is sensitive to order and sequence, which is why
+        # it's done in different steps instead of putting everything in `new_context`
+        conn = SearchConnection(url=self.node_link, distrib=False)
         ctx = conn.new_context(
             project=project,
             experiment_id=experiment,
@@ -286,7 +297,7 @@ class Downloader:
             facets=facets,
         )
 
-        ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
         variants = list(ctx.facet_counts["variant_label"])
 
@@ -359,16 +370,17 @@ class Downloader:
         self.logger.info("Using download_raw_input_single_var() function")
 
         facets = "project,frequency,variable,nominal_resolution,version,target_mip,grid_label"
-        conn = SearchConnection(url=self.node_link, distrib=False)
 
+        # Search context is sensitive to order and sequence, which is why
+        # it's done in different steps instead of putting everything in `new_context`
+        conn = SearchConnection(url=self.node_link, distrib=False)
         ctx = conn.new_context(
             project=project,
             variable=variable,
             institution_id=institution_id,
             facets=facets,
         )
-
-        ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
         mips_targets = list(ctx.facet_counts["target_mip"])
         self.logger.info(f"Available target mips: {mips_targets}")
@@ -409,8 +421,11 @@ class Downloader:
         variable_id = variable.replace("_", "-")
         variable_search = f"percentage_{variable_id.replace('-', '_').split('_')[-1]}"
         self.logger.info(variable, variable_id, institution_id)
-        conn = SearchConnection(url=self.node_link, distrib=False)
         facets = "nominal_resolution,version"
+
+        # Search context is sensitive to order and sequence, which is why
+        # it's done in different steps instead of putting everything in `new_context`
+        conn = SearchConnection(url=self.node_link, distrib=False)
         ctx = conn.new_context(
             project=project,
             variable=variable_search,
@@ -419,8 +434,7 @@ class Downloader:
             target_mip="CMIP",
             facets=facets,
         )
-
-        ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
         version = get_upload_version(context=ctx, preferred_version=preferred_version)
         if version:
@@ -502,53 +516,29 @@ class Downloader:
                 self.download_raw_input_single_var(variable=variable, institution_id="IAMC")
 
 
-def download_from_config_file(config: str, logger: logging.Logger = LOGGER):
+def download_from_config_file(config_file: Union[str, pathlib.Path], logger: logging.Logger = LOGGER):
     """
     This function downloads variables automatically from input config file
     Args:
-        config: Can be a dictionary containing configurations or a path to a configuration yaml file
+        config_file: Path to a configuration yaml file
         logger: Logging instance
     """
-    if not isinstance(config, dict):
-        if isinstance(config, str):
-            config = pathlib.Path(config)
-        config = get_yaml_config(config)
+    if isinstance(config_file, str):
+        config_file = pathlib.Path(config_file)
+    config_dict = get_yaml_config(config_file)
 
-    # get the supported esgf projects (cmip6, cmip6plus, input4mips)
-    implemented_projects = ESGF_PROJECTS_CONSTANTS.keys()
+    downloader_factory = {
+        INPUT4MIPS: {"configs": create_input4mips_downloader_config_from_file, "downloader": Input4MipsDownloader},
+        CMIP6: {"configs": create_cmip6_downloader_config_from_file, "downloader": CMIP6Downloader},
+    }
 
-    # flag to check if at least a single project was found
-    project_found = False
+    verified_config_keys = []
+    for config_key in config_dict:
+        verified_key = match_project_key(input_key=config_key, key_list=AVAILABLE_CONFIGS)
+        if verified_key:
+            verified_config_keys.append(verified_key)
 
-    # iterate over all listed projects and download the requested data
-    for project_name, project_kwargs in config.items():
-        downloader_kwargs = project_kwargs["downloader_kwargs"]
-        logger.info(f"Start downloading requested data for project {project_name}:")
-        logger.info(f"    Downloader kwargs : {downloader_kwargs}")
-
-        # project not found issues a warning
-        if project_name not in implemented_projects:
-            logger.warning(
-                f"The listed project {project_name} is not recognized. List of recognized projects: {implemented_projects}. Consider extending the downloader for the esgf project you would like to download. Continues attempting downloading data of other listed projects."
-            )
-            continue
-
-        # projects that have to be downloaded model wise, e.g. cmip6
-        if project_name in ESGF_RAW_INPUT_LIST:
-            downloader = Downloader(project=project_name, model=None, **downloader_kwargs, logger=logger)
-            downloader.download_raw_input()
-            project_found = True
-
-        # projects that have to be downloaded model-independent, e.g. input4mips
-        if project_name in ESGF_MODEL_OUTPUT_LIST:
-            for m in project_kwargs["models"]:
-                downloader = Downloader(project=project_name, model=m, **downloader_kwargs, logger=logger)
-                downloader.download_from_model()
-                project_found = True
-
-        logger.info(f"Completed downloading data for project {project_name};")
-
-    if not project_found:
-        raise ValueError(
-            f"Failed to download the requested project data because none was recognized. Recognized projects are: {implemented_projects}."
-        )
+    for config_key in verified_config_keys:
+        configs = downloader_factory[config_key]["configs"](config_file=config_file)
+        downloader = downloader_factory[config_key]["downloader"](config=configs)
+        downloader.download()

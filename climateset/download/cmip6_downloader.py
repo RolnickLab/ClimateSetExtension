@@ -1,10 +1,15 @@
-from abstract_downloader import AbstractDownloader
 from pyesgf.search import SearchConnection
 
+from climateset.download.abstract_downloader import AbstractDownloader
+from climateset.download.constants.esgf import CMIP6
+from climateset.download.downloader_config import (
+    CMIP6DownloaderConfig,
+    create_cmip6_downloader_config_from_file,
+)
 from climateset.download.utils import (
-    _handle_base_search_constraints,
     download_model_variable,
     get_upload_version,
+    handle_base_search_constraints,
 )
 from climateset.utils import create_logger
 
@@ -12,8 +17,9 @@ LOGGER = create_logger(__name__)
 
 
 class CMIP6Downloader(AbstractDownloader):
-    def __init__(self):
+    def __init__(self, config: CMIP6DownloaderConfig):
         self.logger = LOGGER
+        self.config = config
 
     def download(self):
         """
@@ -33,23 +39,25 @@ class CMIP6Downloader(AbstractDownloader):
         available value
         """
 
-        for variable in self.model_vars:
+        for variable in self.config.variables:
             self.logger.info(f"Downloading data for variable: {variable}")
-            for experiment in self.experiments:
-                if experiment in self.SUPPORTED_EXPERIMENTS:
-                    self.logger.info(f"Downloading data for experiment: {experiment}")
-                    self.download_from_model_single_var(project=self.project, variable=variable, experiment=experiment)
-                else:
+            for experiment in self.config.experiments:
+                if experiment not in self.config.avail_experiments:
                     self.logger.info(
                         f"Chosen experiment {experiment} not supported. All supported experiments: "
-                        f"{self.SUPPORTED_EXPERIMENTS}. Skipping."
+                        f"{self.config.avail_experiments}. Skipping."
                     )
+                    continue
+                self.logger.info(f"Downloading data for experiment: {experiment}")
+                self.download_from_model_single_var(
+                    project=self.config.project, variable=variable, experiment=experiment
+                )
 
     def download_from_model_single_var(  # noqa: C901
         self,
         variable: str,
         experiment: str,
-        project: str = "CMIP6",
+        project: str = CMIP6,
         default_frequency: str = "mon",
         preferred_version: str = "latest",
         default_grid_label: str = "gn",
@@ -66,7 +74,7 @@ class CMIP6Downloader(AbstractDownloader):
             preferred_version: data upload version, if 'latest', the newest version will get selected always
             default_grid_label: default gridding method in which the data is provided
         """
-        conn = SearchConnection(url=self.model_node_link, distrib=False)
+        conn = SearchConnection(url=self.config.node_link, distrib=False)
 
         facets = (
             "project,experiment_id,source_id,variable,frequency,variant_label,variable, nominal_resolution, "
@@ -78,12 +86,12 @@ class CMIP6Downloader(AbstractDownloader):
         ctx = conn.new_context(
             project=project,
             experiment_id=experiment,
-            source_id=self.model,
+            source_id=self.config.model,
             variable=variable,
             facets=facets,
         )
 
-        ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
         variants = list(ctx.facet_counts["variant_label"])
 
@@ -99,19 +107,19 @@ class CMIP6Downloader(AbstractDownloader):
         self.logger.info(f"Length : {len(variants)}")
 
         # TODO refactor logic of if/else
-        if not self.ensemble_members:
-            if self.max_ensemble_members > len(variants):
+        if not self.config.ensemble_members:
+            if self.config.max_ensemble_members > len(variants):
                 self.logger.info("Less ensemble members available than maximum number desired. Including all variants.")
                 ensemble_member_final_list = variants
             else:
                 self.logger.info(
-                    f"{len(variants)} ensemble members available than desired (max {self.max_ensemble_members}. "
-                    f"Choosing only the first {self.max_ensemble_members}.)."
+                    f"{len(variants)} ensemble members available than desired (max {self.config.max_ensemble_members}. "
+                    f"Choosing only the first {self.config.max_ensemble_members}.)."
                 )
-                ensemble_member_final_list = variants[: self.max_ensemble_members]
+                ensemble_member_final_list = variants[: self.config.max_ensemble_members]
         else:
-            self.logger.info(f"Desired list of ensemble members given: {self.ensemble_members}")
-            ensemble_member_final_list = list(set(variants) & set(self.ensemble_members))
+            self.logger.info(f"Desired list of ensemble members given: {self.config.ensemble_members}")
+            ensemble_member_final_list = list(set(variants) & set(self.config.ensemble_members))
             if len(ensemble_member_final_list) == 0:
                 self.logger.info("WARNING: no overlap between available and desired ensemble members!")
                 self.logger.info("Skipping.")
@@ -130,5 +138,15 @@ class CMIP6Downloader(AbstractDownloader):
             self.logger.info(f"Result len {len(results)}")
 
             download_model_variable(
-                model_id=self.model, search_results=results, variable=variable, base_path=self.data_dir
+                project=CMIP6,
+                model_id=self.config.model,
+                search_results=results,
+                variable=variable,
+                base_path=self.config.data_dir,
             )
+
+
+def cmip6_download_from_config(config):
+    config_object = create_cmip6_downloader_config_from_file(config)
+    downloader = CMIP6Downloader(config=config_object)
+    downloader.download()

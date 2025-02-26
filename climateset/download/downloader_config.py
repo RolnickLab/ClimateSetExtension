@@ -1,3 +1,5 @@
+import copy
+import inspect
 import logging
 from abc import ABC
 from pathlib import Path
@@ -6,10 +8,17 @@ from typing import Union
 import yaml
 
 from climateset import CONFIGS, RAW_DATA
-from climateset.download.constants.esgf import ESGF_PROJECTS, ESGF_PROJECTS_CONSTANTS
-from climateset.utils import create_logger
+from climateset.download.constants.esgf import (
+    CMIP6,
+    ESGF_PROJECTS,
+    ESGF_PROJECTS_CONSTANTS,
+    INPUT4MIPS,
+)
+from climateset.utils import create_logger, get_yaml_config
 
 LOGGER = create_logger(__name__)
+
+AVAILABLE_CONFIGS = frozenset([CMIP6, INPUT4MIPS])
 
 
 class AbstractDownloaderConfig(ABC):
@@ -51,19 +60,40 @@ class AbstractDownloaderConfig(ABC):
         self.avail_variables = self.proj_constants.VAR_SOURCE_LOOKUP
         self.avail_experiments = self.proj_constants.SUPPORTED_EXPERIMENTS
 
-    def generate_config_file(self, config_file_name: str, config_path: Union[str, Path] = CONFIGS) -> None:
+    @staticmethod
+    def _handle_yaml_config_path(config_file_name, config_path):
         if isinstance(config_path, str):
             config_path = Path(config_path)
         if not config_file_name.endswith(".yaml"):
             config_file_name = f"{config_file_name}.yaml"
-
         config_full_path = config_path / config_file_name
-        data = {self.project: {}}
+        return config_full_path
+
+    def generate_config_dict(self):
+        init_params = inspect.signature(self.__init__).parameters
+        init_args = set(init_params.keys()) - {"self"}
+        config_dict = {self.project: {}}
         for key, value in self.__dict__.items():
-            if key not in ["project", "logger"] and not callable(value):
-                data[self.project][key] = value
+            if key in init_args and key not in ["project", "logger"] and not callable(value):
+                config_dict[self.project][key] = value
+        return config_dict
+
+    def generate_config_file(self, config_file_name: str, config_path: Union[str, Path] = CONFIGS) -> None:
+        config_full_path = self._handle_yaml_config_path(config_file_name, config_path)
+        data = self.generate_config_dict()
         with open(config_full_path, "w") as config_file:
             yaml.dump(data, config_file, indent=2)
+
+    def add_to_config_file(self, config_file_name: str, config_path: Union[str, Path] = CONFIGS) -> None:
+        config_full_path = self._handle_yaml_config_path(config_file_name, config_path)
+        existing_config = {}
+        if config_full_path.exists():
+            existing_config = get_yaml_config(config_full_path)
+            existing_config.update(existing_config)
+        new_config = self.generate_config_dict()
+        existing_config.update(new_config)
+        with open(config_full_path, "w") as config_file:
+            yaml.dump(existing_config, config_file, indent=2)
 
 
 class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
@@ -84,7 +114,6 @@ class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
         self.download_metafiles: bool = download_metafiles  # TODO infer automatically from vars
         self.download_biomass_burning: bool = download_biomassburning  # TODO infer automatically from vars
         self.use_plain_emission_vars: bool = use_plain_emission_vars
-
         self.emissions_endings = self.proj_constants.EMISSIONS_ENDINGS
         self.meta_endings_prc = self.proj_constants.META_ENDINGS_PRC
         self.meta_endings_share = self.proj_constants.META_ENDINGS_SHAR
@@ -93,21 +122,17 @@ class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
 
         # Attributes that are going to be retrieved / set within this class for
         ## (all)
-        self.vars: list[str] = variables
         ## (climate model inputs)
         self.biomass_vars: list[str] = []
         self.meta_vars_percentage: list[str] = []
         self.meta_vars_share: list[str] = []
 
-        self._handle_emission_variables(
-            variables=variables,
-        )
+        self._handle_emission_variables()
 
-    def _handle_emission_variables(self, variables: list[str]):
-        self.vars = []
-        self._generate_raw_emission_vars(variables=variables)
+    def _handle_emission_variables(self):
+        self._generate_raw_emission_vars()
         self._generate_plain_emission_vars()
-        self.logger.info(f"Emission variables to download: {self.vars}")
+        self.logger.info(f"Emission variables to download: {self.variables}")
         if self.download_biomass_burning:
             self.logger.info(f"Biomass burning vars to download: {self.biomass_vars}")
         if self.download_metafiles:
@@ -115,60 +140,45 @@ class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
                 f"Meta emission vars to download:\n\t{self.meta_vars_percentage}\n\t{self.meta_vars_share}"
             )
 
-    def _generate_raw_emission_vars(self, variables: list[str]):
+    def _generate_raw_emission_vars(self):
+        variables = copy.deepcopy(self.variables)
         if variables is None:
-            # variables = ["tas", "pr", "SO2_em_anthro", "BC_em_anthro"]
             raise ValueError("No variables have been given to the downloader. Variables must be given for downloader.")
-        variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
-        self.logger.info(f"Cleaned variables : {variables}")
-        for v in variables:
-            self.vars.append(v)
+        self.variables = [v.replace(" ", "_").replace("-", "_") for v in variables]
+        self.logger.info(f"Cleaned variables : {self.variables}")
 
     def _generate_plain_emission_vars(self):
         if self.use_plain_emission_vars:
             # plain vars are biomass vars
-            self.biomass_vars = self.vars
-            self.meta_vars_percentage = [
-                biomass_var + ending
-                for biomass_var in self.biomass_vars
-                if biomass_var != "CO2"
-                for ending in self.meta_endings_prc
-            ]
-            self.meta_vars_share = [
-                biomass_var + ending
-                for biomass_var in self.biomass_vars
-                if biomass_var != "CO2"
-                for ending in self.meta_endings_share
-            ]
-
-            self.vars = [
-                variable + emission_ending for variable in self.vars for emission_ending in self.emissions_endings
+            self.biomass_vars = self.variables
+            self.variables = [
+                variable + emission_ending for variable in self.variables for emission_ending in self.emissions_endings
             ]
             # be careful with CO2
-            if "CO2_em_openburning" in self.vars:
-                self.vars.remove("CO2_em_openburning")
+            if "CO2_em_openburning" in self.variables:
+                self.variables.remove("CO2_em_openburning")
         else:
             # get plain input4mips vars = biomass vars for historical
-            self.biomass_vars = list({v.split("_")[0] for v in self.vars})
+            self.biomass_vars = list({v.split("_")[0] for v in self.variables})
             # remove biomass vars from normal vars list
             for b in self.biomass_vars:
                 try:
-                    self.vars.remove(b)
+                    self.variables.remove(b)
                 except Exception as error:
                     self.logger.warning(f"Caught the following exception but continuing : {error}")
 
-            self.meta_vars_percentage = [
-                biomass_var + ending
-                for biomass_var in self.biomass_vars
-                if biomass_var != "CO2"
-                for ending in self.meta_endings_prc
-            ]
-            self.meta_vars_share = [
-                biomass_var + ending
-                for biomass_var in self.biomass_vars
-                if biomass_var != "CO2"
-                for ending in self.meta_endings_share
-            ]
+        self.meta_vars_percentage = [
+            biomass_var + ending
+            for biomass_var in self.biomass_vars
+            if biomass_var != "CO2"
+            for ending in self.meta_endings_prc
+        ]
+        self.meta_vars_share = [
+            biomass_var + ending
+            for biomass_var in self.biomass_vars
+            if biomass_var != "CO2"
+            for ending in self.meta_endings_share
+        ]
 
 
 class CMIP6DownloaderConfig(AbstractDownloaderConfig):
@@ -176,11 +186,48 @@ class CMIP6DownloaderConfig(AbstractDownloaderConfig):
         self,
         project: str,
         data_dir: str = RAW_DATA,
+        model: Union[str, None] = "NorESM2-LM",
         experiments: list[str] = None,
+        ensemble_members: list[str] = None,  # preferred ensemble members used, if None not considered
+        max_ensemble_members: int = 10,  # if -1 take all
         variables: list[str] = None,
         overwrite: bool = False,
         logger: logging.Logger = LOGGER,
     ):
         super().__init__(project, data_dir, experiments, variables, overwrite, logger)
 
+        self.model: str = model
         self.avail_models = self.proj_constants.MODEL_SOURCES
+        self.ensemble_members: list[str] = ensemble_members
+        self.max_ensemble_members: int = max_ensemble_members
+
+
+def match_project_key(input_key: str, key_list: list[str]) -> Union[str, None]:
+    for key in key_list:
+        if input_key.lower() == key.lower():
+            return key
+        if input_key.upper() == key.upper():
+            return key
+    return None
+
+
+def _get_config_from_file(config_file, config_id, config_class, logger=LOGGER):
+    configs = get_yaml_config(config_file)
+    config_key = config_id
+    if config_key not in configs:
+        config_key = match_project_key(config_key, list(configs.keys()))
+    if not config_key:
+        logger.error(f"Config key [{config_id}] not found in config file [{config_file}]")
+    class_configs = configs[config_key]
+    config_object = config_class(project=config_id, **class_configs)
+    return config_object
+
+
+def create_input4mips_downloader_config_from_file(config_file) -> Input4mipsDownloaderConfig:
+    config_object = _get_config_from_file(config_file, INPUT4MIPS, Input4mipsDownloaderConfig)
+    return config_object
+
+
+def create_cmip6_downloader_config_from_file(config_file) -> CMIP6DownloaderConfig:
+    config_object = _get_config_from_file(config_file, CMIP6, CMIP6DownloaderConfig)
+    return config_object

@@ -1,12 +1,16 @@
-from abstract_downloader import AbstractDownloader
 from pyesgf.search import SearchConnection
 
-from climateset.download.abstract_downloader_config import Input4mipsDownloaderConfig
+from climateset.download.abstract_downloader import AbstractDownloader
+from climateset.download.constants.esgf import INPUT4MIPS
+from climateset.download.downloader_config import (
+    Input4mipsDownloaderConfig,
+    create_input4mips_downloader_config_from_file,
+)
 from climateset.download.utils import (
-    _handle_base_search_constraints,
     download_metadata_variable,
     download_raw_input_variable,
     get_upload_version,
+    handle_base_search_constraints,
 )
 from climateset.utils import create_logger
 
@@ -16,11 +20,10 @@ LOGGER = create_logger(__name__)
 class Input4MipsDownloader(AbstractDownloader):
     def __init__(self, config: Input4mipsDownloaderConfig):
         self.config: Input4mipsDownloaderConfig = config
-        self.raw_vars = ""
         self.logger = LOGGER
 
     def download(self):
-        for variable in self.raw_vars:
+        for variable in self.config.variables:
             if variable.endswith("openburning"):
                 institution_id = "IAMC"
             else:
@@ -45,7 +48,7 @@ class Input4MipsDownloader(AbstractDownloader):
     def download_raw_input_single_var(  # noqa: C901
         self,
         variable: str,
-        project: str = "input4mips",
+        project: str = INPUT4MIPS,
         institution_id: str = "PNNL-JGCRI",
         default_frequency: str = "mon",
         preferred_version: str = "latest",
@@ -56,7 +59,7 @@ class Input4MipsDownloader(AbstractDownloader):
 
         Args:
             variable: variable ID
-            project: umbrella project, here "input4mips"
+            project: umbrella project, here "input4MIPs"
             institution_id: id of the institution that provides the data
             default_frequency: default frequency to download
             preferred_version: data upload version, if 'latest', the newest version will get selected always
@@ -65,16 +68,17 @@ class Input4MipsDownloader(AbstractDownloader):
         self.logger.info("Using download_raw_input_single_var() function")
 
         facets = "project,frequency,variable,nominal_resolution,version,target_mip,grid_label"
-        conn = SearchConnection(url=self.config.node_link, distrib=False)
 
+        # Search context is sensitive to order and sequence, which is why
+        # it's done in different steps instead of putting everything in `new_context`
+        conn = SearchConnection(url=self.config.node_link, distrib=False)
         ctx = conn.new_context(
             project=project,
             variable=variable,
             institution_id=institution_id,
             facets=facets,
         )
-
-        ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
         mips_targets = list(ctx.facet_counts["target_mip"])
         self.logger.info(f"Available target mips: {mips_targets}")
@@ -89,6 +93,7 @@ class Input4MipsDownloader(AbstractDownloader):
             self.logger.info(f"Result len  {len(results)}")
             if len(results) > 0:
                 download_raw_input_variable(
+                    project=INPUT4MIPS,
                     institution_id=institution_id,
                     search_results=results,
                     variable=variable,
@@ -99,7 +104,7 @@ class Input4MipsDownloader(AbstractDownloader):
         self,
         variable: str,
         institution_id: str,
-        project: str = "input4mips",
+        project: str = INPUT4MIPS,
         default_grid_label: str = "gn",
         default_frequency: str = "mon",
         preferred_version: str = "latest",
@@ -118,8 +123,11 @@ class Input4MipsDownloader(AbstractDownloader):
         variable_id = variable.replace("_", "-")
         variable_search = f"percentage_{variable_id.replace('-', '_').split('_')[-1]}"
         self.logger.info(variable, variable_id, institution_id)
-        conn = SearchConnection(url=self.config.node_link, distrib=False)
         facets = "nominal_resolution,version"
+
+        # Search context is sensitive to order and sequence, which is why
+        # it's done in different steps instead of putting everything in `new_context`
+        conn = SearchConnection(url=self.config.node_link, distrib=False)
         ctx = conn.new_context(
             project=project,
             variable=variable_search,
@@ -128,8 +136,7 @@ class Input4MipsDownloader(AbstractDownloader):
             target_mip="CMIP",
             facets=facets,
         )
-
-        ctx = _handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
 
         version = get_upload_version(context=ctx, preferred_version=preferred_version)
         if version:
@@ -142,5 +149,15 @@ class Input4MipsDownloader(AbstractDownloader):
         self.logger.info(f"List of results :\n{result_list}")
 
         download_metadata_variable(
-            institution_id=institution_id, search_results=results, variable=variable, base_path=self.config.data_dir
+            project=INPUT4MIPS,
+            institution_id=institution_id,
+            search_results=results,
+            variable=variable,
+            base_path=self.config.data_dir,
         )
+
+
+def input4mips_download_from_config(config):
+    config_object = create_input4mips_downloader_config_from_file(config)
+    downloader = Input4MipsDownloader(config=config_object)
+    downloader.download()
