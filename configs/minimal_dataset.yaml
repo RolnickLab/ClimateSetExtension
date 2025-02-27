@@ -2,6 +2,8 @@ CMIP6:
   models: [ "NorESM2-LM" ]
   variables: [ "tas" ]
   experiments: [ "historical", "ssp126" ]
+  max_ensemble_members: 1
+  ensemble_members: ["r2i1p1f1"]
 input4MIPs:
-  variables: [ "CO2", "CH4" ]
+  variables: [ "CH4", "CO2" ]
   experiments: [ "historical","ssp126" ]
