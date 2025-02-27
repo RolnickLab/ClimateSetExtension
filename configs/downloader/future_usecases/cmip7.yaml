@@ -1,5 +1,4 @@
 CMIP6Plus:
   models: ["HasGEM3-GC31-LL"]
-  downloader_kwargs:
-    variables: ["mrsofc"]
-    experiments: ["hist-lu"]
+  variables: [ "mrsofc" ]
+  experiments: [ "hist-lu" ]

@@ -1,5 +1,4 @@
 CMIP6:
   models: ["FGOALS-g3"]
-  downloader_kwargs:
-    variables: ["tas"]
-    experiments: ["ssp245"]
+  variables: [ "tas" ]
+  experiments: [ "ssp245" ]

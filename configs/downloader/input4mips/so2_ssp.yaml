@@ -1,4 +1,3 @@
 input4MIPs:
-  downloader_kwargs:
-    variables: ["SO2"]
-    experiments: ["ssp370"]
+  variables: [ "SO2" ]
+  experiments: [ "ssp370" ]

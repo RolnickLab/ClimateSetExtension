@@ -1,4 +1,3 @@
 input4MIPs:
-  downloader_kwargs:
-    variables: ["BC"]
-    experiments: ["ssp585"]
+  variables: [ "BC" ]
+  experiments: [ "ssp585" ]

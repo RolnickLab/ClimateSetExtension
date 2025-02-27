@@ -1,9 +1,7 @@
 CMIP6:
-  models: ["NorESM2-LM"]
-  downloader_kwargs:
-    variables: ["tas", "CH4", "CO2"]
-    experiments: ["historical", "ssp126"]
-    max_ensemble_members: 1
-    overwrite: true
-    start_year: 1990
-    end_year: 2030
+  models: [ "NorESM2-LM" ]
+  variables: [ "tas" ]
+  experiments: [ "historical", "ssp126" ]
+input4MIPs:
+  variables: [ "CO2", "CH4" ]
+  experiments: [ "historical","ssp126" ]

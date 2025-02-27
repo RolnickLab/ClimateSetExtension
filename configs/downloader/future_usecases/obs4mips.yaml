@@ -1,5 +1,4 @@
 #ESACCI-CLOUD-ATSR2-AATSR-3-0:
 obs4MIPs:
-  downloader_kwargs:
-    variables: ["pctCCI"]
-    experiments: [""]
+  variables: ["pctCCI"]
+  experiments: [""]

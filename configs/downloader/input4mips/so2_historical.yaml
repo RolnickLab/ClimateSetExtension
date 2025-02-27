@@ -1,4 +1,3 @@
 input4MIPs:
-  downloader_kwargs:
-    variables: ["SO2"]
-    experiments: ["historical"]
+  variables: [ "SO2" ]
+  experiments: [ "historical" ]

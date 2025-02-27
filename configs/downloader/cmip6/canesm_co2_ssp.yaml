@@ -1,5 +1,4 @@
 CMIP6:
   models: ["CanESM5"]
-  downloader_kwargs:
-    variables: ["co2"]
-    experiments: ["abrupt-2xCO2"]
+  variables: [ "co2" ]
+  experiments: [ "abrupt-2xCO2" ]

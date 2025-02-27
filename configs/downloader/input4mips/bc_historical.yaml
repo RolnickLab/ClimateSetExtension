@@ -1,4 +1,3 @@
 input4MIPs:
-  downloader_kwargs:
-    variables: ["BC"]
-    experiments: ["historical"]
+  variables: [ "BC" ]
+  experiments: [ "historical" ]
