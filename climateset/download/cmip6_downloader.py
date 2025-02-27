@@ -94,10 +94,12 @@ class CMIP6Downloader(AbstractDownloader):
 
         if len(variants) < 1:
             self.logger.info(
-                "No items were found for this request. Please check on the esgf server if the combination of your model/scenarios/variables exists."
+                "No items were found for this request. Please check on the esgf server if the combination of your "
+                "model/scenarios/variables exists."
             )
             raise ValueError(
-                "Downloader did not find any items on esgf for your request with: Project {project}, Experiment {experiment}, Model {self.model}, Variable {variable}."
+                f"Downloader did not find any items on esgf for your request with: Project {project}, "
+                f"Experiment {experiment}, Model {model}, Variable {variable}."
             )
 
         self.logger.info(f"Available variants : {variants}\n")

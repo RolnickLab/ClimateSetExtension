@@ -117,7 +117,7 @@ class AbstractDownloaderConfig(ABC):
     def generate_config_file(self, config_file_name: str, config_path: Union[str, Path] = CONFIGS) -> None:
         config_full_path = self._handle_yaml_config_path(config_file_name, config_path)
         data = self.generate_config_dict()
-        with open(config_full_path, "w") as config_file:
+        with open(config_full_path, "w", encoding="utf-8") as config_file:
             yaml.dump(data, config_file, indent=2)
 
     def add_to_config_file(self, config_file_name: str, config_path: Union[str, Path] = CONFIGS) -> None:
@@ -128,7 +128,7 @@ class AbstractDownloaderConfig(ABC):
             existing_config.update(existing_config)
         new_config = self.generate_config_dict()
         existing_config.update(new_config)
-        with open(config_full_path, "w") as config_file:
+        with open(config_full_path, "w", encoding="utf-8") as config_file:
             yaml.dump(existing_config, config_file, indent=2)
 
 
