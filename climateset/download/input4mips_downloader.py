@@ -45,7 +45,7 @@ class Input4MipsDownloader(AbstractDownloader):
                 self.logger.info(f"Downloading meta openburning share data for variable: {variable}")
                 self.download_raw_input_single_var(variable=variable, institution_id="IAMC")
 
-    def download_raw_input_single_var(  # noqa: C901
+    def download_raw_input_single_var(
         self,
         variable: str,
         project: str = INPUT4MIPS,

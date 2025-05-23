@@ -3,7 +3,6 @@ import pathlib
 import re
 import subprocess
 import time
-from typing import Union
 
 import xarray as xr
 
@@ -30,7 +29,8 @@ def extract_target_mip_exp_name(filename: str, target_mip: str, logger: logging.
         if "covid" in filename:
             experiment = f"{experiment}_covid"
     elif target_mip == "CMIP":
-        if int(year_end) > 2015:
+        cutoff_year_for_historical = 2015
+        if int(year_end) > cutoff_year_for_historical:
             logger.info(f"TARGET MIP : {filename}")
             experiment = f"ssp{filename.split('ssp')[-1][:3]}"
         else:
@@ -158,7 +158,7 @@ def _download_process(temp_download_path, search_results, logger: logging.Logger
 
 
 def download_raw_input_variable(
-    project, institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
+    project, institution_id, search_results, variable, base_path: str | pathlib.Path = RAW_DATA
 ):
     if isinstance(base_path, str):
         base_path = pathlib.Path(base_path)
@@ -166,9 +166,7 @@ def download_raw_input_variable(
     _download_process(temp_download_path, search_results)
 
 
-def download_model_variable(
-    project, model_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
-):
+def download_model_variable(project, model_id, search_results, variable, base_path: str | pathlib.Path = RAW_DATA):
     if isinstance(base_path, str):
         base_path = pathlib.Path(base_path)
     temp_download_path = base_path / f"{project}/{model_id}/{variable}"
@@ -176,7 +174,7 @@ def download_model_variable(
 
 
 def download_metadata_variable(
-    project, institution_id, search_results, variable, base_path: Union[str, pathlib.Path] = RAW_DATA
+    project, institution_id, search_results, variable, base_path: str | pathlib.Path = RAW_DATA
 ):
     if isinstance(base_path, str):
         base_path = pathlib.Path(base_path)
@@ -266,7 +264,7 @@ def handle_yaml_config_path(config_file_name, config_path):
     return config_full_path
 
 
-def match_key_in_list(input_key: str, key_list: list[str]) -> Union[str, None]:
+def match_key_in_list(input_key: str, key_list: list[str]) -> str | None:
     for key in key_list:
         if input_key.lower() == key.lower():
             return key

@@ -1,7 +1,6 @@
 import logging
 import pathlib
 import sys
-from typing import Union
 
 import yaml
 
@@ -56,7 +55,7 @@ def get_mip(experiment: str):
     return "CMIP"
 
 
-def get_yaml_config(yaml_config_file: Union[str, pathlib.Path], logger: logging.Logger = LOGGER) -> dict:
+def get_yaml_config(yaml_config_file: str | pathlib.Path, logger: logging.Logger = LOGGER) -> dict:
     """
     Reads a YAML configuration file and returns its contents as a dictionary.
 
@@ -95,7 +94,7 @@ def get_yaml_config(yaml_config_file: Union[str, pathlib.Path], logger: logging.
     for path in potential_paths:
         if path.exists():
             config_filepath = path
-            logger.info(f"Yaml config file [{str(path)}] found.")
+            logger.info(f"Yaml config file [{path!s}] found.")
             break
 
     params = {}

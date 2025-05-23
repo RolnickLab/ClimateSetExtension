@@ -48,7 +48,7 @@ class CMIP6Downloader(AbstractDownloader):
                         model=model, project=self.config.project, variable=variable, experiment=experiment
                     )
 
-    def download_from_model_single_var(  # noqa: C901
+    def download_from_model_single_var(
         self,
         model: str,
         variable: str,
@@ -122,7 +122,7 @@ class CMIP6Downloader(AbstractDownloader):
             if len(ensemble_member_final_list) == 0:
                 self.logger.info("WARNING: no overlap between available and desired ensemble members!")
                 self.logger.info("Skipping.")
-                return None
+                return
 
         for ensemble_member in ensemble_member_final_list:
             self.logger.info(f"Ensembles member: {ensemble_member}")

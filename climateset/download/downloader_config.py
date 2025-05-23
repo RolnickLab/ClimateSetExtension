@@ -3,7 +3,6 @@ import inspect
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Union
 
 import yaml
 
@@ -26,7 +25,7 @@ class AbstractDownloaderConfig(ABC):
     def __init__(
         self,
         project: str,
-        data_dir: Union[str, Path] = RAW_DATA,
+        data_dir: str | Path = RAW_DATA,
         experiments: list[str] = None,
         variables: list[str] = None,
         overwrite: bool = False,
@@ -114,13 +113,13 @@ class AbstractDownloaderConfig(ABC):
                 config_dict[self.project][key] = value
         return config_dict
 
-    def generate_config_file(self, config_file_name: str, config_path: Union[str, Path] = CONFIGS) -> None:
+    def generate_config_file(self, config_file_name: str, config_path: str | Path = CONFIGS) -> None:
         config_full_path = self._handle_yaml_config_path(config_file_name, config_path)
         data = self.generate_config_dict()
         with open(config_full_path, "w", encoding="utf-8") as config_file:
             yaml.dump(data, config_file, indent=2)
 
-    def add_to_config_file(self, config_file_name: str, config_path: Union[str, Path] = CONFIGS) -> None:
+    def add_to_config_file(self, config_file_name: str, config_path: str | Path = CONFIGS) -> None:
         config_full_path = self._handle_yaml_config_path(config_file_name, config_path)
         existing_config = {}
         if config_full_path.exists():

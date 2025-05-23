@@ -1,6 +1,5 @@
 import logging
 import pathlib
-from typing import Union
 
 from climateset.download.cmip6_downloader import cmip6_download_from_config
 from climateset.download.constants.esgf import CMIP6, INPUT4MIPS
@@ -12,7 +11,7 @@ from climateset.utils import create_logger, get_yaml_config
 LOGGER = create_logger(__name__)
 
 
-def download_from_config_file(config_file: Union[str, pathlib.Path], logger: logging.Logger = LOGGER):
+def download_from_config_file(config_file: str | pathlib.Path, logger: logging.Logger = LOGGER):
     """
     This function downloads variables automatically from input config file
     Args:
