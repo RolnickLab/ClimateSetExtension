@@ -1,6 +1,6 @@
 from .cmip6 import Cmip6Constants
 from .cmip6plus import Cmip6plusConstants
-from .input4mips import Input4mipsConstants
+from .input4mips import INPUT4MIPS_CONSTANTS
 
 CMIP6 = "CMIP6"
 CMIP6PLUS = "CMIP6Plus"
@@ -13,7 +13,7 @@ ESGF_PROJECTS = frozenset([CMIP6, CMIP6PLUS, INPUT4MIPS])
 ESGF_PROJECTS_CONSTANTS = {
     CMIP6: Cmip6Constants,
     CMIP6PLUS: Cmip6plusConstants,
-    INPUT4MIPS: Input4mipsConstants,
+    INPUT4MIPS: INPUT4MIPS_CONSTANTS,
 }
 
 # datasets that provide inputs to climate models
