@@ -93,7 +93,7 @@ def infer_nominal_resolution(ds: xr.Dataset, nominal_resolution: str, logger: lo
         degree = abs(ds.lon[0].item() - ds.lon[1].item())
         nom_res = int(degree * 100)
         logger.info(f"Inferring nominal resolution: {nom_res}")
-    except Exception as error:
+    except Exception as error:  # pylint: disable=W0718
         logger.warning(f"Caught the following exception but continuing : {error}")
     return nom_res
 

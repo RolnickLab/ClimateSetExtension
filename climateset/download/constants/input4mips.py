@@ -1,6 +1,7 @@
 # TODO add VAR_SOURCE_LOOKUP with raw variables
 # TODO add supported experiments
 # TODO do we really need emission endings, meta_endings_prc, meta_endings_shar?? how is this used so far?
+# pylint: disable=C0103
 from dataclasses import dataclass
 from typing import Final
 

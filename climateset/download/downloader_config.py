@@ -199,7 +199,7 @@ class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
             for b in self.biomass_vars:
                 try:
                     self.variables.remove(b)
-                except Exception as error:
+                except Exception as error:  # pylint: disable=W0718
                     self.logger.warning(f"Caught the following exception but continuing : {error}")
 
         self.meta_vars_percentage = [
