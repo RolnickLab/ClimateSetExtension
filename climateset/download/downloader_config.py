@@ -157,8 +157,8 @@ class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
         self.target_mip = self.proj_constants.TARGET_MIP
 
         # Attributes that are going to be retrieved / set within this class for
-        ## (all)
-        ## (climate model inputs)
+        # (all)
+        # (climate model inputs)
         self.biomass_vars: list[str] = []
         self.meta_vars_percentage: list[str] = []
         self.meta_vars_share: list[str] = []

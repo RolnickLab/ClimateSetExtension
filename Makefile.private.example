@@ -24,5 +24,15 @@ DOCKER_COMPOSE := docker compose
 # a 'true' value will automatically install/remove without asking beforehand.
 AUTO_INSTALL := false
 
+# The default environment to use. The choices are as follow: [venv, poetry, conda]
+# If this is not set, the makefile will use the `poetry` command without activating
+# an environment before hand.
+# DEFAULT_INSTALL_ENV := conda
+
+# The default environment where Poetry will be installed. The choices are as follow: [venv, conda]
+# If this is not set, the makefile will ask the user where they want to install Poetry
+#DEFAULT_POETRY_INSTALL_ENV := venv
+
+
 ## -- Private targets ------------------------------------------------------------------------------------------------##
 
