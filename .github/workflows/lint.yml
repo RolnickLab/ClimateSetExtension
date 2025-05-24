@@ -50,8 +50,11 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Install dependencies
+        env: 
+          CONDA_TOOL: mamba
         run: |
-          make CONDA_TOOL=mamba install
+          make poetry-install-venv
+          make install
 
       - name: Run linting checks
         run: |
