@@ -175,32 +175,32 @@ exclude = [
 
 [tool.ruff.lint]
 select = [
-    "A", # Flake8 Built ins
-    "E", # Error (Flake8)
-    "F", # Pyflakes (Flake8)
-    "W", # Warning (Flake8)
-    "I", # isort (import sorting)
-    "N", # Naming conventions (Pylint, etc.)
+    "A",   # Flake8 Built ins
+    "E",   # Error (Flake8)
+    "F",   # Pyflakes (Flake8)
+    "W",   # Warning (Flake8)
+    "I",   # isort (import sorting)
+    "N",   # Naming conventions (Pylint, etc.)
     "C90", # mccabe complexity (replaces flake8 --max-complexity and mccabe)
-    "B", # Bugbear (common linting issues)
-    "UP", # pyupgrade (suggests modern Python syntax)
+    "B",   # Bugbear (common linting issues)
+    "UP",  # pyupgrade (suggests modern Python syntax)
     "PLR", # Pylint refactor
     "PLE", # Pylint error (specific Pylint error rules)
     "PLW", # Pylint warning (specific Pylint warning rules)
     "PLC", # Pylint convention (specific Pylint convention rules)
-    "R", # Refactor (Pylint refactoring suggestions)
+    "R",   # Refactor (Pylint refactoring suggestions)
     "TID", # TO DO comments
-    "FAST", # FastAPI
-    "C4", # List and dict comprehensions
-    "DJ", # Django
-    "PIE", # Returns and unecessary returns
-    "Q", # Double quotes
+    "FAST",# FastAPI
+    "C4",  # List and dict comprehensions
+    "DJ",  # Django
+    "PIE", # Returns and unnecessary returns
+    "Q",   # Double quotes
     "RET", # Fix return statements
     "PTH", # Enforce pathlib
     "ARG", # Unused argument
     "FLY", # Flynt
     "NPY", # Numpy specific
-    "PD", # Pandas specific
+    "PD",  # Pandas specific
     "RUF", # Ruff specific
 ]
 
