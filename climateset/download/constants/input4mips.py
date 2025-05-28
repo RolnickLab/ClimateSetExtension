@@ -10,6 +10,17 @@ from climateset.utils import get_yaml_config
 
 @dataclass(frozen=True)
 class Input4MIPSConstants:
+    """
+    Data class to represent Input4MIPS constants that are used by the download module.
+
+    Attributes:
+        NODE_LINK : Node link is used to run an ESGF search
+        EMISSION_ENDINGS : File endings for emission variables
+        META_ENDINGS_PRC : File endings for PRC meta variables
+        META_ENDINGS_SHARE : File endings for SHARE meta variables
+        VAR_SOURCE_LOOKUP : Model and raw variables
+    """
+
     NODE_LINK: Final[str]
     EMISSIONS_ENDINGS: Final[tuple[str, ...]]
     META_ENDINGS_PRC: Final[tuple[str, ...]]

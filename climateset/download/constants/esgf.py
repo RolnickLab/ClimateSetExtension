@@ -1,5 +1,5 @@
-from .cmip6 import Cmip6Constants
-from .cmip6plus import Cmip6plusConstants
+from .cmip6 import CMIP6_CONSTANTS
+from .cmip6plus import CMIP6PLUS_CONSTANTS
 from .input4mips import INPUT4MIPS_CONSTANTS
 
 CMIP6 = "CMIP6"
@@ -11,8 +11,8 @@ ESGF_PROJECTS = frozenset([CMIP6, CMIP6PLUS, INPUT4MIPS])
 # constant classes for esgf projects implemented here
 # add your own esgf project for downloading to download/constants/ and add the constant class to the dict and lists here
 ESGF_PROJECTS_CONSTANTS = {
-    CMIP6: Cmip6Constants,
-    CMIP6PLUS: Cmip6plusConstants,
+    CMIP6: CMIP6_CONSTANTS,
+    CMIP6PLUS: CMIP6PLUS_CONSTANTS,
     INPUT4MIPS: INPUT4MIPS_CONSTANTS,
 }
 

@@ -1,4 +1,4 @@
-node_link: "http://esgf-node.llnl.gov/esg-search/"
+node_link: "https://esgf-node.llnl.gov/esg-search/"
 
 emissions_endings:
   - "_em_openburning"

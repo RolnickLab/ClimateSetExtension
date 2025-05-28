@@ -135,7 +135,7 @@ def test_downloader_variables(input4mips_downloader_object, cmip6_downloader_obj
 
 
 def test_downloader_model_params(cmip6_downloader_object):
-    assert cmip6_downloader_object.config.node_link == "http://esgf-node.llnl.gov/esg-search/"
+    assert cmip6_downloader_object.config.node_link == "https://esgf-node.llnl.gov/esg-search/"
 
 
 def test_download_raw_input(input4mips_downloader_object, mock_raw_input_single_var, mock_meta_historic_single_var):
