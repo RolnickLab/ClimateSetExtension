@@ -1,7 +1,6 @@
 import copy
 import inspect
 import logging
-from abc import ABC
 from pathlib import Path
 
 import yaml
@@ -21,7 +20,7 @@ LOGGER = create_logger(__name__)
 AVAILABLE_CONFIGS = frozenset([CMIP6, INPUT4MIPS])
 
 
-class AbstractDownloaderConfig(ABC):
+class BaseDownloaderConfig:
     def __init__(
         self,
         project: str,
@@ -131,7 +130,7 @@ class AbstractDownloaderConfig(ABC):
             yaml.dump(existing_config, config_file, indent=2)
 
 
-class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
+class Input4mipsDownloaderConfig(BaseDownloaderConfig):
     def __init__(
         self,
         project: str,
@@ -216,7 +215,7 @@ class Input4mipsDownloaderConfig(AbstractDownloaderConfig):
         ]
 
 
-class CMIP6DownloaderConfig(AbstractDownloaderConfig):
+class CMIP6DownloaderConfig(BaseDownloaderConfig):
     def __init__(
         self,
         project: str,
