@@ -1,5 +1,3 @@
-from pyesgf.search import SearchConnection
-
 from climateset.download.abstract_downloader import AbstractDownloader
 from climateset.download.constants.esgf import INPUT4MIPS
 from climateset.download.downloader_config import (
@@ -7,10 +5,8 @@ from climateset.download.downloader_config import (
     create_input4mips_downloader_config_from_file,
 )
 from climateset.download.utils import (
-    download_metadata_variable,
-    download_raw_input_variable,
-    get_upload_version,
-    handle_base_search_constraints,
+    search_and_download_esgf_biomass_single_var,
+    search_and_download_esgf_raw_single_var,
 )
 from climateset.utils import create_logger
 
@@ -67,38 +63,18 @@ class Input4MipsDownloader(AbstractDownloader):
         """
         self.logger.info("Using download_raw_input_single_var() function")
 
-        facets = "project,frequency,variable,nominal_resolution,version,target_mip,grid_label"
-
         # Search context is sensitive to order and sequence, which is why
         # it's done in different steps instead of putting everything in `new_context`
-        conn = SearchConnection(url=self.config.node_link, distrib=False)
-        ctx = conn.new_context(
-            project=project,
+        results_list = search_and_download_esgf_raw_single_var(
             variable=variable,
+            project=project,
             institution_id=institution_id,
-            facets=facets,
+            default_grid_label=default_grid_label,
+            default_frequency=default_frequency,
+            preferred_version=preferred_version,
+            data_dir=self.config.data_dir,
         )
-        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
-
-        mips_targets = list(ctx.facet_counts["target_mip"])
-        self.logger.info(f"Available target mips: {mips_targets}")
-
-        for target in mips_targets:
-            ctx_target = ctx.constrain(target_mip=target)
-            version = get_upload_version(context=ctx_target, preferred_version=preferred_version)
-            if version:
-                ctx_target = ctx_target.constrain(version=version)
-
-            results = ctx_target.search()
-            self.logger.info(f"Result len  {len(results)}")
-            if len(results) > 0:
-                download_raw_input_variable(
-                    project=INPUT4MIPS,
-                    institution_id=institution_id,
-                    search_results=results,
-                    variable=variable,
-                    base_path=self.config.data_dir,
-                )
+        self.logger.info(f"Download results: {results_list}")
 
     def download_meta_historic_biomassburning_single_var(
         self,
@@ -123,38 +99,20 @@ class Input4MipsDownloader(AbstractDownloader):
         variable_id = variable.replace("_", "-")
         variable_search = f"percentage_{variable_id.replace('-', '_').split('_')[-1]}"
         self.logger.info(variable, variable_id, institution_id)
-        facets = "nominal_resolution,version"
 
         # Search context is sensitive to order and sequence, which is why
         # it's done in different steps instead of putting everything in `new_context`
-        conn = SearchConnection(url=self.config.node_link, distrib=False)
-        ctx = conn.new_context(
-            project=project,
+        results = search_and_download_esgf_biomass_single_var(
             variable=variable_search,
             variable_id=variable_id,
+            project=project,
             institution_id=institution_id,
-            target_mip="CMIP",
-            facets=facets,
-        )
-        ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
-
-        version = get_upload_version(context=ctx, preferred_version=preferred_version)
-        if version:
-            ctx = ctx.constrain(version=version)
-
-        results = ctx.search()
-        self.logger.info(f"Result len  {len(results)}")
-
-        result_list = [r.file_context().search() for r in results]
-        self.logger.info(f"List of results :\n{result_list}")
-
-        download_metadata_variable(
-            project=INPUT4MIPS,
-            institution_id=institution_id,
-            search_results=results,
-            variable=variable,
+            default_grid_label=default_grid_label,
+            default_frequency=default_frequency,
+            preferred_version=preferred_version,
             base_path=self.config.data_dir,
         )
+        self.logger.info(f"Download results: {results}")
 
 
 def input4mips_download_from_config(config):

@@ -1,12 +1,15 @@
 import logging
-import pathlib
 import re
 import subprocess
 import time
+from pathlib import Path
 
 import xarray as xr
+from pyesgf.search import SearchConnection
+from pyesgf.search.context import DatasetSearchContext
 
 from climateset import RAW_DATA
+from climateset.download.constants import NODE_LINK_URLS
 from climateset.utils import create_logger
 
 LOGGER = create_logger(__name__)
@@ -157,27 +160,23 @@ def _download_process(temp_download_path, search_results, logger: logging.Logger
         _download_result(result=result, download_path=temp_download_path, logger=logger)
 
 
-def download_raw_input_variable(
-    project, institution_id, search_results, variable, base_path: str | pathlib.Path = RAW_DATA
-):
+def download_raw_input_variable(project, institution_id, search_results, variable, base_path: str | Path = RAW_DATA):
     if isinstance(base_path, str):
-        base_path = pathlib.Path(base_path)
+        base_path = Path(base_path)
     temp_download_path = base_path / f"{project}/raw_input_vars/{institution_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
-def download_model_variable(project, model_id, search_results, variable, base_path: str | pathlib.Path = RAW_DATA):
+def download_model_variable(project, model_id, search_results, variable, base_path: str | Path = RAW_DATA):
     if isinstance(base_path, str):
-        base_path = pathlib.Path(base_path)
+        base_path = Path(base_path)
     temp_download_path = base_path / f"{project}/{model_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
 
-def download_metadata_variable(
-    project, institution_id, search_results, variable, base_path: str | pathlib.Path = RAW_DATA
-):
+def download_metadata_variable(project, institution_id, search_results, variable, base_path: str | Path = RAW_DATA):
     if isinstance(base_path, str):
-        base_path = pathlib.Path(base_path)
+        base_path = Path(base_path)
     temp_download_path = base_path / f"{project}/meta_vars/{institution_id}/{variable}"
     _download_process(temp_download_path, search_results)
 
@@ -257,7 +256,7 @@ def handle_base_search_constraints(ctx, default_frequency, default_grid_label):
 
 def handle_yaml_config_path(config_file_name, config_path):
     if isinstance(config_path, str):
-        config_path = pathlib.Path(config_path)
+        config_path = Path(config_path)
     if not config_file_name.endswith(".yaml"):
         config_file_name = f"{config_file_name}.yaml"
     config_full_path = config_path / config_file_name
@@ -271,3 +270,236 @@ def match_key_in_list(input_key: str, key_list: list[str]) -> str | None:
         if input_key.upper() == key.upper():
             return key
     return None
+
+
+def get_base_search_context(
+    url: str = None,
+    facets: str = None,
+    variable: str = None,
+    variable_id: str = None,
+    institution_id: str = None,
+    project: str = None,
+    experiment_id: str = None,
+    source_id: str = None,
+    default_grid_label: str = None,
+    default_frequency: str = None,
+) -> DatasetSearchContext:
+    conn = SearchConnection(url=url, distrib=False)
+    ctx = conn.new_context(
+        project=project,
+        variable=variable,
+        variable_id=variable_id,
+        institution_id=institution_id,
+        experiment_id=experiment_id,
+        source_id=source_id,
+        facets=facets,
+    )
+    ctx = handle_base_search_constraints(ctx, default_frequency, default_grid_label)
+    return ctx
+
+
+def search_and_download_esgf_raw_single_var(
+    variable: str,
+    institution_id: str,
+    project: str,
+    default_grid_label: str,
+    default_frequency: str,
+    preferred_version: str,
+    data_dir,
+    logger=LOGGER,
+):
+    facets = "project,frequency,variable,nominal_resolution,version,target_mip,grid_label"
+    for url in NODE_LINK_URLS:
+        results_list = []
+        try:
+
+            ctx = get_base_search_context(
+                url=url,
+                project=project,
+                institution_id=institution_id,
+                variable=variable,
+                facets=facets,
+                default_grid_label=default_grid_label,
+                default_frequency=default_frequency,
+            )
+
+            mips_targets = list(ctx.facet_counts["target_mip"])
+            logger.info(f"Available target mips: {mips_targets}")
+
+            for target in mips_targets:
+                ctx_target = ctx.constrain(target_mip=target)
+                version = get_upload_version(context=ctx_target, preferred_version=preferred_version)
+                if version:
+                    ctx_target = ctx_target.constrain(version=version)
+
+                results = ctx_target.search()
+                logger.info(f"Result len  {len(results)}")
+                if results:
+                    results_list.append(results)
+            if results_list:
+                for r in results_list:
+                    download_raw_input_variable(
+                        project=project,
+                        institution_id=institution_id,
+                        search_results=r,
+                        variable=variable,
+                        base_path=data_dir,
+                    )
+                return results_list
+            logger.error(f"Could not find anything for {url}")
+        except Exception as e:
+            logger.error(f"Error: {e}")
+
+    raise Exception(f"Could not find anything for all urls: {NODE_LINK_URLS}")
+
+
+def search_and_download_esgf_biomass_single_var(
+    variable: str,
+    variable_id: str,
+    institution_id: str,
+    project: str,
+    default_grid_label: str,
+    default_frequency: str,
+    preferred_version: str,
+    base_path: Path,
+    logger=LOGGER,
+):
+    facets = "nominal_resolution,version"
+    for url in NODE_LINK_URLS:
+        try:
+            ctx = get_base_search_context(
+                url=url,
+                facets=facets,
+                variable=variable,
+                variable_id=variable_id,
+                institution_id=institution_id,
+                project=project,
+                default_grid_label=default_grid_label,
+                default_frequency=default_frequency,
+            )
+
+            version = get_upload_version(context=ctx, preferred_version=preferred_version)
+            if version:
+                ctx = ctx.constrain(version=version)
+
+            results = ctx.search()
+            logger.info(f"Result len  {len(results)}")
+
+            result_list = [r.file_context().search() for r in results]
+            logger.info(f"List of results :\n{result_list}")
+            if results:
+                logger.info(results[0].file_context())
+                download_metadata_variable(
+                    project=project,
+                    institution_id=institution_id,
+                    search_results=results,
+                    variable=variable,
+                    base_path=base_path,
+                )
+                return results
+            logger.error(f"Could not find anything for {url}")
+        except Exception as e:
+            logger.error(f"Error: {e}")
+
+    raise Exception(f"Could not find anything for all urls: {NODE_LINK_URLS}")
+
+
+def search_and_download_esgf_model_single_var(
+    model: str,
+    variable: str,
+    experiment: str,
+    project: str,
+    default_grid_label: str,
+    default_frequency: str,
+    preferred_version: str,
+    max_ensemble_members: int,
+    ensemble_members: list[str],
+    base_path: Path,
+    logger=LOGGER,
+):
+    facets = (
+        "project,experiment_id,source_id,variable,frequency,variant_label,variable, nominal_resolution, "
+        "version, grid_label, experiment_id"
+    )
+
+    for url in NODE_LINK_URLS:
+        results_list = []
+        try:
+            logger.info("Using download_from_model_single_var() function")
+
+            ctx = get_base_search_context(
+                url=url,
+                facets=facets,
+                variable=variable,
+                experiment_id=experiment,
+                source_id=model,
+                default_frequency=default_frequency,
+                default_grid_label=default_grid_label,
+            )
+
+            logger.info(ctx)
+
+            variants = list(ctx.facet_counts["variant_label"])
+
+            if len(variants) < 1:
+                logger.info(
+                    "No items were found for this request. Please check on the esgf server if the combination of your "
+                    "model/scenarios/variables exists."
+                )
+                raise ValueError(
+                    f"Downloader did not find any items on esgf for your request with: Project {project}, "
+                    f"Experiment {experiment}, Model {model}, Variable {variable}."
+                )
+
+            logger.info(f"Available variants : {variants}\n")
+            logger.info(f"Length : {len(variants)}")
+
+            # TODO refactor logic of if/else
+            if not ensemble_members:
+                if max_ensemble_members > len(variants):
+                    logger.info("Less ensemble members available than maximum number desired. Including all variants.")
+                    ensemble_member_final_list = variants
+                else:
+                    logger.info(
+                        f"{len(variants)} ensemble members available than desired (max {max_ensemble_members}. "
+                        f"Choosing only the first {max_ensemble_members}.)."
+                    )
+                    ensemble_member_final_list = variants[:max_ensemble_members]
+            else:
+                logger.info(f"Desired list of ensemble members given: {ensemble_members}")
+                ensemble_member_final_list = list(set(variants) & set(ensemble_members))
+                if len(ensemble_member_final_list) == 0:
+                    logger.info("WARNING: no overlap between available and desired ensemble members!")
+                    logger.info("Skipping.")
+                    return None
+
+            for ensemble_member in ensemble_member_final_list:
+                logger.info(f"Ensembles member: {ensemble_member}")
+                ctx_ensemble = ctx.constrain(variant_label=ensemble_member)
+                logger.info(ctx_ensemble)
+
+                version = get_upload_version(context=ctx, preferred_version=preferred_version)
+                if version:
+                    ctx_ensemble = ctx_ensemble.constrain(version=version)
+
+                results = ctx_ensemble.search()
+                if results:
+                    results_list.append(results)
+
+                logger.info(f"Result len {len(results)}")
+            logger.info(results_list)
+            if results_list:
+                for results in results_list:
+                    download_model_variable(
+                        project=project,
+                        model_id=model,
+                        search_results=results,
+                        variable=variable,
+                        base_path=base_path,
+                    )
+                return results_list
+            logger.error(f"Could not find anything for {url}")
+        except Exception as e:
+            logger.error(f"Error: {e}")
+
+    raise Exception(f"Could not find anything for all urls: {NODE_LINK_URLS}")
