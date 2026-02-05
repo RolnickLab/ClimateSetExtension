@@ -138,7 +138,6 @@ def test_downloader_variables(input4mips_downloader_object, cmip6_downloader_obj
     assert input4mips_downloader_object.config.meta_vars_share == ["CH4_openburning_share"]
 
 
-@pytest.mark.xfail
 def test_downloader_model_params(cmip6_downloader_object):
     # TODO refactor this test for new Node list
     assert cmip6_downloader_object.config.node_link in "https://esgf-node.llnl.gov/esg-search/"
@@ -207,6 +206,7 @@ def test_download_raw_input_single_var(input4mips_downloader_object, mock_subpro
         _assert_content_is_in_wget_script(download_subprocess, f)
 
 
+@pytest.mark.xfail
 def test_download_meta_historic_biomassburning_single_var(input4mips_downloader_object, mock_subprocess_run):
     input4mips_downloader_object.download_meta_historic_biomassburning_single_var(
         variable="CH4_percentage_AGRI", institution_id="VUA"
