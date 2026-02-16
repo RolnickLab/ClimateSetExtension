@@ -17,8 +17,8 @@ class SearchClient:
     Acts as a factory for SearchSession objects.
     """
 
-    def __init__(self, node_urls: List[str] = NODE_LINK_URLS, distrib: bool = True):
-        self.node_urls = node_urls
+    def __init__(self, node_urls: List[str] | None = None, distrib: bool = True):
+        self.node_urls = node_urls if node_urls is not None else NODE_LINK_URLS
         self.distrib = distrib
         self.logger = LOGGER
 
@@ -82,7 +82,7 @@ class SearchSession:
 
                 self._context = ctx
                 return
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.warning(f"Failed to connect to {url}: {e}")
                 self._current_node_index += 1
                 self._connection = None
@@ -109,7 +109,7 @@ class SearchSession:
             if params:
                 try:
                     self._context = self._context.constrain(**params)
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     self.logger.warning(f"Error applying constraints on current node: {e}")
                     self._rotate_node()
         else:
@@ -136,7 +136,7 @@ class SearchSession:
                 if facet_name in self._context.facet_counts:
                     return list(self._context.facet_counts[facet_name].keys())
                 return []
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.warning(f"Error fetching facets from {self.node_urls[self._current_node_index]}: {e}")
                 self._rotate_node()
                 attempts += 1
@@ -156,7 +156,7 @@ class SearchSession:
             try:
                 self._ensure_connection()
                 return self._context.search()
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.warning(f"Search failed on {self.node_urls[self._current_node_index]}: {e}")
                 self._rotate_node()
                 attempts += 1

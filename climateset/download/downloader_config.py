@@ -12,7 +12,7 @@ from climateset.download.constants.esgf import (
     ESGF_PROJECTS_CONSTANTS,
     INPUT4MIPS,
 )
-from climateset.download.utils import match_key_in_list
+from climateset.download.utils import handle_yaml_config_path, match_key_in_list
 from climateset.utils import create_logger, get_yaml_config
 
 LOGGER = create_logger(__name__)
@@ -94,15 +94,6 @@ class BaseDownloaderConfig:
             self.logger.warning(f"List of valid submitted {name_of_item}s: {available_items}")
             self.config_is_valid = False
 
-    @staticmethod
-    def _handle_yaml_config_path(config_file_name, config_path):
-        if isinstance(config_path, str):
-            config_path = Path(config_path)
-        if not config_file_name.endswith(".yaml"):
-            config_file_name = f"{config_file_name}.yaml"
-        config_full_path = config_path / config_file_name
-        return config_full_path
-
     def generate_config_dict(self):
         init_params = inspect.signature(self.__init__).parameters
         init_args = set(init_params.keys()) - {"self"}
@@ -113,13 +104,13 @@ class BaseDownloaderConfig:
         return config_dict
 
     def generate_config_file(self, config_file_name: str, config_path: str | Path = CONFIGS) -> None:
-        config_full_path = self._handle_yaml_config_path(config_file_name, config_path)
+        config_full_path = handle_yaml_config_path(config_file_name, config_path)
         data = self.generate_config_dict()
         with open(config_full_path, "w", encoding="utf-8") as config_file:
             yaml.dump(data, config_file, indent=2)
 
     def add_to_config_file(self, config_file_name: str, config_path: str | Path = CONFIGS) -> None:
-        config_full_path = self._handle_yaml_config_path(config_file_name, config_path)
+        config_full_path = handle_yaml_config_path(config_file_name, config_path)
         existing_config = {}
         if config_full_path.exists():
             existing_config = get_yaml_config(config_full_path)
