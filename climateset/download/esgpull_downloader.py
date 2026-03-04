@@ -23,14 +23,18 @@ def _download_and_move_files(esg, files, dest_dir: Path, logger: logging.Logger)
         logger.info("No files to download.")
         return []
 
+    logger.info(f"Adding {len(files)} files to esgpull DB...")
     # Add tracked files to the isolated internal DB queue
     esg.db.add(*files)
 
     async def _run_download():
+        logger.info("Starting esg.download async...")
         return await esg.download(files, show_progress=False)
 
+    logger.info("Executing asyncio.run(_run_download())...")
     # Execute async native download
     downloaded, errors = asyncio.run(_run_download())
+    logger.info(f"Download complete. Downloaded: {len(downloaded)}, Errors: {len(errors)}")
 
     if errors:
         for err in errors:
@@ -154,7 +158,6 @@ class EsgpullDownloader(AbstractDownloader):
             query.options.distrib = self.distrib
 
             _apply_facet_fallback(esg, query, "grid_label", default_grid_label, self.logger)
-            _apply_facet_fallback(esg, query, "nominal_resolution", None, self.logger)
             _apply_facet_fallback(esg, query, "frequency", default_frequency, self.logger)
 
             # Esgpull handles multi-values natively. Fetch targets if any.
