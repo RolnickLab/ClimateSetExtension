@@ -57,3 +57,17 @@ def test_constraints_immutability():
         assert False, "Should have raised AttributeError"
     except AttributeError:
         pass  # Expected behavior
+
+
+def test_base_constraints_multi_value_esgpull():
+    """Test that constraints support list values and serialization to esgpull queries."""
+    constraints = BaseSearchConstraints(project=["CMIP6", "input4MIPs"], variable=["tas", "pr"], frequency="mon")
+
+    # The serialization should output the list values directly.
+    esgf_params = constraints.to_esgf_params()
+    esgpull_params = constraints.to_esgpull_query()
+
+    expected = {"project": ["CMIP6", "input4MIPs"], "variable": ["tas", "pr"], "frequency": "mon"}
+
+    assert esgf_params == expected
+    assert esgpull_params == expected
