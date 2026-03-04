@@ -111,3 +111,42 @@ def test_search_and_download_esgf_model_single_var(mock_esg_context, tmp_path):
     assert called_query.selection["experiment_id"] == ["historical"]
     assert len(called_query.selection["variant_label"]) == 1
     assert called_query.selection["version"] == ["v2020"]
+
+
+@pytest.mark.integration
+def test_esgpull_downloader_integration_search(tmp_path):
+    """
+    Integration test that performs a real search against ESGF using esgpull.
+
+    Requires network access.
+    """
+    downloader = EsgpullDownloader(distrib=True)
+
+    # Do a very specific search to limit results and ensure we get something predictable
+    files = downloader.search_and_download_esgf_model_single_var(
+        model="CanESM5",
+        variable="tas",
+        experiment="historical",
+        project="CMIP6",
+        default_grid_label="gn",
+        default_frequency="mon",
+        preferred_version="latest",
+        max_ensemble_members=1,
+        ensemble_members=["r1i1p1f1"],
+        data_dir=tmp_path,
+    )
+
+    # Should at least find something
+    assert files is not None
+    assert len(files) > 0
+
+    # Check that returned objects are actual esgpull File instances
+    from esgpull.models import File
+
+    assert isinstance(files[0], File)
+
+    # Verify the file metadata matches our query
+    assert files[0].dataset_id.startswith("CMIP6.")
+    assert "CanESM5" in files[0].dataset_id
+    assert "tas" in files[0].dataset_id
+    assert "historical" in files[0].dataset_id
