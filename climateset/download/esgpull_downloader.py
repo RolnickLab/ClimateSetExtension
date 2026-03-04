@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import shutil
 from pathlib import Path
 
 from esgpull.models import Options, Query, Selection
@@ -12,6 +14,44 @@ from climateset.utils import create_logger
 Selection.configure("target_mip", "version", replace=False)
 
 LOGGER = create_logger(__name__)
+
+
+def _download_and_move_files(esg, files, dest_dir: Path, logger: logging.Logger):
+    """Downloads tracked files natively via esgpull (asyncio) and moves them from the isolated cache to the final
+    requested target directory."""
+    if not files:
+        logger.info("No files to download.")
+        return []
+
+    # Add tracked files to the isolated internal DB queue
+    esg.db.add(*files)
+
+    async def _run_download():
+        return await esg.download(files, show_progress=False)
+
+    # Execute async native download
+    downloaded, errors = asyncio.run(_run_download())
+
+    if errors:
+        for err in errors:
+            logger.error(f"Download error: {err}")
+
+    # Transfer from cache to strictly formatted project tree
+    if isinstance(dest_dir, str):
+        dest_dir = Path(dest_dir)
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    moved_files = []
+    data_cache_dir = esg.config.paths.data
+    if data_cache_dir.exists():
+        for nc_file in data_cache_dir.rglob("*.nc"):
+            dest_file = dest_dir / nc_file.name
+            logger.info(f"Moving {nc_file.name} to {dest_dir}")
+            shutil.move(str(nc_file), str(dest_file))
+            moved_files.append(dest_file)
+
+    return moved_files
 
 
 def _apply_facet_fallback(esg, query: Query, facet_name: str, preferred_value: str | None, logger: logging.Logger):
@@ -129,8 +169,8 @@ class EsgpullDownloader(AbstractDownloader):
             files = esg.context.search(query, file=True)
             self.logger.info(f"Result len: {len(files)}")
 
-            # Will be passed to esg.download() in Task 4
-            return files
+            dest_dir = Path(data_dir) / f"{project}/raw_input_vars/{institution_id}/{variable}"
+            return _download_and_move_files(esg, files, dest_dir, self.logger)
 
     def search_and_download_esgf_biomass_single_var(
         self,
@@ -161,7 +201,8 @@ class EsgpullDownloader(AbstractDownloader):
             files = esg.context.search(query, file=True)
             self.logger.info(f"Result len: {len(files)}")
 
-            return files
+            dest_dir = Path(data_dir) / f"{project}/meta_vars/{institution_id}/{variable}"
+            return _download_and_move_files(esg, files, dest_dir, self.logger)
 
     def search_and_download_esgf_model_single_var(
         self,
@@ -201,4 +242,5 @@ class EsgpullDownloader(AbstractDownloader):
             files = esg.context.search(query, file=True)
             self.logger.info(f"Result len {len(files)}")
 
-            return files
+            dest_dir = Path(data_dir) / f"{project}/{model}/{variable}"
+            return _download_and_move_files(esg, files, dest_dir, self.logger)

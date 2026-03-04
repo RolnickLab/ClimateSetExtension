@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -47,7 +48,8 @@ def test_apply_version_fallback_latest():
     assert query.options.latest.name == "true"
 
 
-def test_search_and_download_esgf_raw_single_var(mock_esg_context, tmp_path):
+@patch("climateset.download.esgpull_downloader._download_and_move_files")
+def test_search_and_download_esgf_raw_single_var(mock_download_and_move, mock_esg_context, tmp_path):
     downloader = EsgpullDownloader()
     mock_esg_context.context.hints.side_effect = [
         [{"grid_label": {"gn": 10}}],
@@ -57,6 +59,7 @@ def test_search_and_download_esgf_raw_single_var(mock_esg_context, tmp_path):
         [{"version": {"v2020": 10}}],
     ]
     mock_esg_context.context.search.return_value = ["file1", "file2"]
+    mock_download_and_move.return_value = ["path/to/file1.nc", "path/to/file2.nc"]
 
     files = downloader.search_and_download_esgf_raw_single_var(
         variable="tas",
@@ -68,8 +71,14 @@ def test_search_and_download_esgf_raw_single_var(mock_esg_context, tmp_path):
         data_dir=tmp_path,
     )
 
-    assert files == ["file1", "file2"]
+    assert files == ["path/to/file1.nc", "path/to/file2.nc"]
     mock_esg_context.context.search.assert_called_once()
+    mock_download_and_move.assert_called_once_with(
+        mock_esg_context,
+        ["file1", "file2"],
+        tmp_path / "input4MIPs" / "raw_input_vars" / "INST" / "tas",
+        downloader.logger,
+    )
 
     # Assert query passed to search
     called_query = mock_esg_context.context.search.call_args[0][0]
@@ -82,7 +91,8 @@ def test_search_and_download_esgf_raw_single_var(mock_esg_context, tmp_path):
     assert called_query.options.latest.name == "true"
 
 
-def test_search_and_download_esgf_model_single_var(mock_esg_context, tmp_path):
+@patch("climateset.download.esgpull_downloader._download_and_move_files")
+def test_search_and_download_esgf_model_single_var(mock_download_and_move, mock_esg_context, tmp_path):
     downloader = EsgpullDownloader()
     mock_esg_context.context.hints.side_effect = [
         [{"frequency": {"mon": 10}}],
@@ -91,6 +101,7 @@ def test_search_and_download_esgf_model_single_var(mock_esg_context, tmp_path):
         [{"version": {"v2020": 10}}],
     ]
     mock_esg_context.context.search.return_value = ["file1"]
+    mock_download_and_move.return_value = ["path/to/file1.nc"]
 
     files = downloader.search_and_download_esgf_model_single_var(
         model="Model-1",
@@ -105,7 +116,10 @@ def test_search_and_download_esgf_model_single_var(mock_esg_context, tmp_path):
         data_dir=tmp_path,
     )
 
-    assert files == ["file1"]
+    assert files == ["path/to/file1.nc"]
+    mock_download_and_move.assert_called_once_with(
+        mock_esg_context, ["file1"], tmp_path / "CMIP6" / "Model-1" / "tas", downloader.logger
+    )
     called_query = mock_esg_context.context.search.call_args[0][0]
     assert called_query.selection["source_id"] == ["Model-1"]
     assert called_query.selection["experiment_id"] == ["historical"]
@@ -140,13 +154,12 @@ def test_esgpull_downloader_integration_search(tmp_path):
     assert files is not None
     assert len(files) > 0
 
-    # Check that returned objects are actual esgpull File instances
-    from esgpull.models import File
+    # Check that returned objects are Paths to the downloaded chunk files
+    assert isinstance(files[0], Path)
 
-    assert isinstance(files[0], File)
-
-    # Verify the file metadata matches our query
-    assert files[0].dataset_id.startswith("CMIP6.")
-    assert "CanESM5" in files[0].dataset_id
-    assert "tas" in files[0].dataset_id
-    assert "historical" in files[0].dataset_id
+    # Verify the file name matches our query
+    filename = files[0].name
+    assert filename.endswith(".nc")
+    assert "CanESM5" in filename
+    assert "tas" in filename
+    assert "historical" in filename
