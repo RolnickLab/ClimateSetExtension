@@ -18,7 +18,7 @@ PROJECT_PATH := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 MAKEFILE_NAME := $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 SHELL := /usr/bin/env bash
 BUMP_TOOL := bump-my-version
-MAKEFILE_VERSION := 1.3.0
+MAKEFILE_VERSION := 1.3.1
 DOCKER_COMPOSE ?= docker compose
 AUTO_INSTALL ?=
 

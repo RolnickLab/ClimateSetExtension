@@ -10,7 +10,7 @@
 # files to include.
 ########################################################################################
 PROJECT_PATH := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
-MAKEFILE_VERSION := 1.3.0
+MAKEFILE_VERSION := 1.3.1
 BUMP_TOOL := bump-my-version
 BUMP_CONFIG_FILE := $(PROJECT_PATH).bumpversion.toml
 SHELL := /usr/bin/env bash
