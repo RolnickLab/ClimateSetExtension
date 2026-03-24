@@ -1,6 +1,6 @@
 name: Lint
 
-on: [pull_request, push]
+on: [pull_request]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -25,6 +25,20 @@ jobs:
           miniforge-version: latest
           activate-environment: climateset
           use-mamba: true
+
+      - name: Install Poetry
+        run: |
+          make install-poetry-venv
+
+      - name: Cache Poetry virtualenv and dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
 
       - name: Get Date
         id: get-date
@@ -51,8 +65,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          make CONDA_TOOL=mamba install
+          make install-dev
 
       - name: Run linting checks
         run: |
-          make check-pylint
+          make pylint
