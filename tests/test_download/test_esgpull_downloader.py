@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from esgpull.models import Query
 
-from climateset.download.esgpull_downloader import (
-    EsgpullDownloader,
+from climateset.download.esgpull_downloader import EsgpullDownloader
+from climateset.download.esgpull_utils import (
     _apply_facet_fallback,
     _apply_version_fallback,
 )
@@ -54,7 +54,7 @@ def test_search_and_download_esgf_model_single_var_real_search(tmp_path, mock_es
     downloader = EsgpullDownloader(distrib=True)
 
     # This will hit real ESGF nodes for the search phase
-    files = downloader.search_and_download_esgf_model_single_var(
+    files = downloader.esgpull_search_and_download_esgf_model_single_var(
         model="CanESM5",
         variable="tas",
         experiment="historical",
@@ -83,7 +83,7 @@ def test_search_and_download_esgf_model_single_var_real_search(tmp_path, mock_es
 def test_search_and_download_esgf_raw_single_var_real_search(tmp_path, mock_esgpull_download):
     downloader = EsgpullDownloader(distrib=True)
 
-    files = downloader.search_and_download_esgf_raw_single_var(
+    files = downloader.esgpull_search_and_download_esgf_raw_single_var(
         variable="tas",
         institution_id="MRI",  # Known variable for MRI in input4MIPs
         project="input4MIPs",
@@ -105,8 +105,8 @@ def test_esgpull_downloader_integration_search_real(tmp_path):
     with patch("esgpull.esgpull.Esgpull.download", new_callable=AsyncMock) as mock_download:
         mock_download.return_value = ([], [])
 
-        files = downloader.search_and_download_esgf_model_single_var(
-            model="CanESM5",
+        files = downloader.esgpull_search_and_download_esgf_model_single_var(
+            model="NorESM2-LM",
             variable="tas",
             experiment="historical",
             project="CMIP6",

@@ -26,6 +26,14 @@ DOWNLOAD_META_HISTORIC_SINGLE_VAR = (
 DOWNLOAD_MODEL_SINGLE_VAR = "climateset.download.cmip6_downloader.CMIP6Downloader.download_from_model_single_var"
 SUBPROCESS_RUN = "subprocess.run"
 
+DOWNLOAD_RAW_INPUT_SINGLE_VAR_V2 = (
+    "climateset.download.input4mips_downloader.Input4MipsDownloaderV2.download_raw_input_single_var"
+)
+DOWNLOAD_META_HISTORIC_SINGLE_VAR_V2 = (
+    "climateset.download.input4mips_downloader.Input4MipsDownloaderV2.download_meta_historic_biomassburning_single_var"
+)
+DOWNLOAD_MODEL_SINGLE_VAR_V2 = "climateset.download.cmip6_downloader.CMIP6DownloaderV2.download_from_model_single_var"
+
 EXPECTED_MINIMAL_RAW_INPUT_CALLS = [
     call(variable="CO2_em_anthro", institution_id="PNNL-JGCRI"),
     call(variable="CO2_em_AIR_anthro", institution_id="PNNL-JGCRI"),
@@ -157,17 +165,20 @@ def test_download_from_model(cmip6_downloader_object, mock_model_single_var):
     assert mock_model_single_var.call_count == 1
 
 
+@patch(DOWNLOAD_MODEL_SINGLE_VAR_V2)
+@patch(DOWNLOAD_META_HISTORIC_SINGLE_VAR_V2)
+@patch(DOWNLOAD_RAW_INPUT_SINGLE_VAR_V2)
 def test_download_from_config_file(
-    input4mips_downloader_object, mock_raw_input_single_var, mock_meta_historic_single_var, mock_model_single_var
+    mock_raw_input_single_var_v2, mock_meta_historic_single_var_v2, mock_model_single_var_v2
 ):
     download_from_config_file(config_file=MINIMAL_DATASET_CONFIG_PATH)
 
-    assert mock_raw_input_single_var.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
-    assert mock_raw_input_single_var.call_count == RAW_INPUT_NUM_OF_CALLS
-    assert mock_meta_historic_single_var.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
-    assert mock_meta_historic_single_var.call_count == META_HISTORIC_NUM_OF_CALLS
-    assert mock_model_single_var.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
-    assert mock_model_single_var.call_count == MODEL_SINGLE_NUM_OF_CALLS
+    assert mock_raw_input_single_var_v2.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
+    assert mock_raw_input_single_var_v2.call_count == RAW_INPUT_NUM_OF_CALLS
+    assert mock_meta_historic_single_var_v2.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
+    assert mock_meta_historic_single_var_v2.call_count == META_HISTORIC_NUM_OF_CALLS
+    assert mock_model_single_var_v2.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
+    assert mock_model_single_var_v2.call_count == MODEL_SINGLE_NUM_OF_CALLS
 
 
 def _assert_content_is_in_wget_script(mock_call, string_content):
