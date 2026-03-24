@@ -77,7 +77,7 @@ search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 
 [[tool.bumpversion.files]]
-filename = "Makefile"
+filename = "Makefile.variables"
 search = "APP_VERSION := {current_version}"
 replace = "APP_VERSION := {new_version}"
 

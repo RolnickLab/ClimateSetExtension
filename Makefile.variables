@@ -1,6 +1,40 @@
 # This file is for custom makefile variable at the project level.
 # They are meant to be share by the whole project team.
 
+#
+# Project Core variables
+#
+APP_VERSION := 0.0.0
+
+# APPLICATION_NAME must be aligned with the name of the folder containing your package
 APPLICATION_NAME := climateset
-CONDA_ENVIRONMENT := climateset
+
 PYTHON_VERSION := 3.11
+
+# This is the default install environment for the project.
+# Here, we are talking about the virtual environment management - not dependencies.
+#
+# venv creates a standard virtual environment via the available 'virtualenv'
+# uv creates a virtual environment via 'uv venv -p $(PYTHON_VERSION)'
+# poetry creates a virtual environment via 'poetry env use $(PYTHON_VERSION)'
+# conda create a virtual environment via '$(CONDA_TOOL) env create -f environment.yml'
+#
+# The default environment is uv. The choices are as follows: [venv, uv, poetry, conda]
+DEFAULT_INSTALL_ENV := conda
+
+# This is the project's default build tool.
+# This value should also reflect the choice above - DO NOT choose 'poetry' for 
+# DEFAULT_INSTALL_ENV and then use 'uv' as the build tool
+#
+# The default build tool is uv. The choices are as follows: [uv, poetry]
+DEFAULT_BUILD_TOOL := poetry
+
+# Makefile target groups
+# Below, you can chose what target groups are available. Full list: [lint,test,docs]
+TARGET_GROUPS := lint,test,docs
+
+#
+# Conda related variables
+#
+CONDA_ENVIRONMENT := climateset
+CONDA_TOOL := mamba
