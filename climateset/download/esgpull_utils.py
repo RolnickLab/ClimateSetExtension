@@ -1,19 +1,56 @@
 import asyncio
+import contextlib
 import logging
 import shutil
+import uuid
 from pathlib import Path
+from typing import Generator
 
-from esgpull import Query
+from esgpull import Esgpull, Query
 from esgpull.models import Options, Selection
 
 from climateset.download.constraints import CMIP6Constraints, Input4MIPsConstraints
-from climateset.download.utils import isolated_esgpull_context
+from climateset.download.utils import _handle_ensemble_members
 from climateset.utils import create_logger
 
 # Configure esgpull Selection to accept additional custom facets
 Selection.configure("target_mip", "version", replace=False)
 
 LOGGER = create_logger(__name__)
+
+
+@contextlib.contextmanager
+def isolated_esgpull_context(raw_data_path: Path | str) -> Generator[Esgpull, None, None]:
+    """
+    Context manager that creates a unique, isolated execution environment for esgpull to avoid file lock collisions and
+    pollution of the user's $HOME directory.
+
+    Args:
+        raw_data_path: The base path for RAW_DATA where .esgpull_jobs will be created.
+
+    Yields:
+        Esgpull: An isolated instance of Esgpull.
+    """
+    if isinstance(raw_data_path, str):
+        raw_data_path = Path(raw_data_path)
+
+    # Create a unique, isolated directory for this esgpull instance
+    # using a UUID to prevent collisions between parallel jobs.
+    unique_id = uuid.uuid4().hex
+    esgpull_jobs_dir = raw_data_path / ".esgpull_jobs"
+    isolated_path = esgpull_jobs_dir / unique_id
+
+    # Ensure the parent directory exists
+    esgpull_jobs_dir.mkdir(parents=True, exist_ok=True)
+
+    esg = None
+    try:
+        esg = Esgpull(path=isolated_path, install=True)
+        yield esg
+    finally:
+        # Tear down and safely purge the isolation folder and its SQLite DB
+        if isolated_path.exists():
+            shutil.rmtree(isolated_path, ignore_errors=True)
 
 
 def esgpull_search_and_download_esgf_raw_single_var(
@@ -235,16 +272,7 @@ def _apply_variants_filter(
     variants = list(hints[0]["variant_label"].keys())
     logger.info(f"Available variants : {variants}\nLength : {len(variants)}")
 
-    if not ensemble_members:
-        if max_ensemble_members > len(variants):
-            logger.info("Less ensemble members available than maximum number desired. Including all variants.")
-            return variants
-        logger.info(
-            f"{len(variants)} ensemble members available, desired (max {max_ensemble_members}). "
-            f"Choosing only the first {max_ensemble_members}."
-        )
-        return variants[:max_ensemble_members]
-
-    logger.info(f"Desired list of ensemble members given: {ensemble_members}")
-    ensemble_member_final_list = list(set(variants) & set(ensemble_members))
-    return ensemble_member_final_list
+    ensemble_members_list = _handle_ensemble_members(
+        variants=variants, ensemble_members=ensemble_members, max_ensemble_members=max_ensemble_members, logger=logger
+    )
+    return ensemble_members_list

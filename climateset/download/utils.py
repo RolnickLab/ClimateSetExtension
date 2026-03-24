@@ -1,15 +1,10 @@
-import contextlib
 import logging
 import re
-import shutil
 import subprocess
 import time
-import uuid
 from pathlib import Path
-from typing import Generator
 
 import xarray as xr
-from esgpull import Esgpull
 
 from climateset import RAW_DATA
 from climateset.download.client import SearchClient, SearchSession
@@ -462,19 +457,9 @@ def search_and_download_esgf_biomass_single_var(
     raise RuntimeError("Could not find anything for all urls")
 
 
-def _get_variants_and_filter(
-    session: SearchSession, max_ensemble_members: int, ensemble_members: list[str], logger: logging.Logger
+def _handle_ensemble_members(
+    variants: list, ensemble_members: list[str], max_ensemble_members: int, logger: logging.Logger
 ) -> list[str]:
-    """Helper to retrieve and filter variant labels."""
-    variants = session.get_available_facets("variant_label")
-
-    if len(variants) < 1:
-        # Note: Previous code raised ValueError here but logging info first
-        return []
-
-    logger.info(f"Available variants : {variants}\n")
-    logger.info(f"Length : {len(variants)}")
-
     if not ensemble_members:
         if max_ensemble_members > len(variants):
             logger.info("Less ensemble members available than maximum number desired. Including all variants.")
@@ -488,6 +473,25 @@ def _get_variants_and_filter(
     logger.info(f"Desired list of ensemble members given: {ensemble_members}")
     ensemble_member_final_list = list(set(variants) & set(ensemble_members))
     return ensemble_member_final_list
+
+
+def _get_variants_and_filter(
+    session: SearchSession, max_ensemble_members: int, ensemble_members: list[str], logger: logging.Logger
+) -> list[str]:
+    """Helper to retrieve and filter variant labels."""
+    variants = session.get_available_facets("variant_label")
+
+    if len(variants) < 1:
+        # Note: Previous code raised ValueError here but logging info first
+        return []
+
+    logger.info(f"Available variants : {variants}\n")
+    logger.info(f"Length : {len(variants)}")
+
+    ensemble_members_list = _handle_ensemble_members(
+        variants=variants, ensemble_members=ensemble_members, max_ensemble_members=max_ensemble_members, logger=logger
+    )
+    return ensemble_members_list
 
 
 def search_and_download_esgf_model_single_var(
@@ -589,37 +593,3 @@ def search_and_download_esgf_model_single_var(
             logger.error(f"Error: {e}")
 
     raise RuntimeError("Could not find anything for all urls")
-
-
-@contextlib.contextmanager
-def isolated_esgpull_context(raw_data_path: Path | str) -> Generator[Esgpull, None, None]:
-    """
-    Context manager that creates a unique, isolated execution environment for esgpull to avoid file lock collisions and
-    pollution of the user's $HOME directory.
-
-    Args:
-        raw_data_path: The base path for RAW_DATA where .esgpull_jobs will be created.
-
-    Yields:
-        Esgpull: An isolated instance of Esgpull.
-    """
-    if isinstance(raw_data_path, str):
-        raw_data_path = Path(raw_data_path)
-
-    # Create a unique, isolated directory for this esgpull instance
-    # using a UUID to prevent collisions between parallel jobs.
-    unique_id = uuid.uuid4().hex
-    esgpull_jobs_dir = raw_data_path / ".esgpull_jobs"
-    isolated_path = esgpull_jobs_dir / unique_id
-
-    # Ensure the parent directory exists
-    esgpull_jobs_dir.mkdir(parents=True, exist_ok=True)
-
-    esg = None
-    try:
-        esg = Esgpull(path=isolated_path, install=True)
-        yield esg
-    finally:
-        # Tear down and safely purge the isolation folder and its SQLite DB
-        if isolated_path.exists():
-            shutil.rmtree(isolated_path, ignore_errors=True)

@@ -1,4 +1,4 @@
-from climateset.download.utils import isolated_esgpull_context
+from climateset.download.esgpull_utils import isolated_esgpull_context
 
 
 def test_isolated_esgpull_context(tmp_path):
