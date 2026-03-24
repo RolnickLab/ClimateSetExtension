@@ -3,7 +3,7 @@
 # If necessary, override the corresponding variable and/or target, or create new ones
 # in one of the following files, depending on the nature of the override :
 #
-# Makefile.variables, Makefile.targets or Makefile.private`,
+# Makefile.variables, Makefile.targets or Makefile.private,
 #
 # The only valid reason to modify this file is to fix a bug or to add new
 # files to include.
@@ -11,12 +11,14 @@
 # Please report bugs to francis.pelletier@mila.quebec
 ########################################################################################
 
+.DEFAULT_GOAL := help
+
 # Basic variables
 PROJECT_PATH := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 MAKEFILE_NAME := $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 SHELL := /usr/bin/env bash
 BUMP_TOOL := bump-my-version
-MAKEFILE_VERSION := 0.2.0
+MAKEFILE_VERSION := 1.3.0
 DOCKER_COMPOSE ?= docker compose
 AUTO_INSTALL ?=
 
@@ -24,14 +26,104 @@ AUTO_INSTALL ?=
 # CONDA_TOOL can be overridden in Makefile.private file
 CONDA_TOOL := conda
 CONDA_ENVIRONMENT ?=
+CONDA_YES_OPTION ?=
 
-# Colors
-_SECTION := \033[1m\033[34m
-_TARGET  := \033[36m
-_NORMAL  := \033[0m
+# Global Variables
+PIPX_VENV_PATH := $$HOME/.pipx_venv
 
-.DEFAULT_GOAL := help
+# Default variables (if Makefile.variables is missing)
+APP_VERSION := 0.0.0
+APPLICATION_NAME := core
+PYTHON_VERSION := 3.12
+DEFAULT_INSTALL_ENV := uv
+DEFAULT_BUILD_TOOL := uv
+TARGET_GROUPS := lint,test
+CONDA_ENVIRONMENT := core
+
+# Targets Colors
+_ESC := $(shell printf '\033')
+_SECTION := $(_ESC)[1m\033[34m
+_TARGET  := $(_ESC)[1m\033[36m
+_CYAN := $(_ESC)[36m
+_NORMAL  := $(_ESC)[0m
+_WARNING := $(_ESC)[1;39;41m
+
+WARNING := $(_WARNING) -- WARNING -- $(_NORMAL)
+
+# Project and Private variables and targets import to override variables for local
+# This is to make sure, sometimes the Makefile includes don't work.
+-include Makefile.variables
+-include Makefile.private
+
+comma := ,
+contains = $(if $(filter $(1),$(subst $(comma), ,$(2))),true)
+not_in = $(if $(filter $(1),$(subst $(comma), ,$(2))),,true)
+
+INSTALL_ENV_IS_VENV := $(call contains,venv,$(DEFAULT_INSTALL_ENV))
+INSTALL_ENV_IS_UV := $(call contains,uv,$(DEFAULT_INSTALL_ENV))
+INSTALL_ENV_IS_POETRY := $(call contains,poetry,$(DEFAULT_INSTALL_ENV))
+INSTALL_ENV_IS_CONDA := $(call contains,conda,$(DEFAULT_INSTALL_ENV))
+
+BUILD_TOOL_IS_UV := $(call contains,uv,$(DEFAULT_BUILD_TOOL))
+BUILD_TOOL_IS_POETRY := $(call contains,poetry,$(DEFAULT_BUILD_TOOL))
+
+CONDA_CONFLICT := $(and $(INSTALL_ENV_IS_CONDA),$(BUILD_TOOL_IS_UV))
+UV_CONFLICT := $(and $(INSTALL_ENV_IS_POETRY),$(BUILD_TOOL_IS_UV))
+POETRY_CONFLICT := $(and $(INSTALL_ENV_IS_UV),$(BUILD_TOOL_IS_POETRY))
+PLEASE_FIX_CONFLICT_MSG := Please fix the conflict in your [Makefile.variables] and/or [Makefile.private] file(s)
+
+IS_MAKEFILE_VARIABLES_MISSING := $(call not_in,Makefile.variables,$(MAKEFILE_LIST))
+PLEASE_FIX_MISSING_FILE := Please consider adding a [Makefile.variables] file to your project - See lab-advanced-template for more info
+
+check_configs = $(if $($(1)), \
+    $(info ) \
+    $(info $(WARNING) $(2)) \
+    $(info $(PLEASE_FIX_CONFLICT_MSG)) \
+    $(info ) \
+)
+
+check_files = $(if $($(1)), \
+    $(info ) \
+    $(info $(WARNING) $(2)) \
+    $(info $(PLEASE_FIX_MISSING_FILE)) \
+    $(info ) \
+)
+
+# Config Checks
+# These run immediately when you type 'make'
+$(call check_configs,CONDA_CONFLICT,'conda' environment is enabled while using 'uv')
+$(call check_configs,UV_CONFLICT,'poetry' environment is enabled while using 'uv')
+$(call check_configs,POETRY_CONFLICT,'uv' environment is enabled while using 'poetry')
+$(call check_files,IS_MAKEFILE_VARIABLES_MISSING,The configuration file 'Makefile.variables' is missing - Using default values)
+
+
+## -- Initialization targets ---------------------------------------------------------------------------------------- ##
+.PHONY: project-init
+project-init: ## Initialize the project from the template - Only run once!
+	@python3 $(PROJECT_PATH).make/scripts/auto_init_script.py
+
+.PHONY: project-init-dry-run
+project-init-dry: ## Test run: no changes will be made - Initialize the project from the template
+	@python3 $(PROJECT_PATH).make/scripts/auto_init_script.py --dry
+
+
 ## -- Informative targets ------------------------------------------------------------------------------------------- ##
+
+.PHONY: info
+info: ## Get project configuration info
+	@echo ""
+	@echo -e "$(_BLUE)--- Configuration Status ---$(_NORMAL)"
+	@echo ""
+	@echo -e "$(_CYAN)Application Name$(_NORMAL)         : $(APPLICATION_NAME)"
+	@echo -e "$(_CYAN)Application version$(_NORMAL)      : $(APP_VERSION)"
+	@echo -e "$(_CYAN)Application Root$(_NORMAL)         : [$(PROJECT_PATH)]"
+	@echo -e "$(_CYAN)Application package$(_NORMAL)      : [$(PROJECT_PATH)src/$(APPLICATION_NAME)]"
+	@echo -e "$(_CYAN)Environment manager$(_NORMAL)      : $(DEFAULT_INSTALL_ENV)"
+	@echo -e "$(_CYAN)Build tool$(_NORMAL)               : $(DEFAULT_BUILD_TOOL)"
+	@echo -e "$(_CYAN)Python version$(_NORMAL)           : $(PYTHON_VERSION)"
+	@echo -e "$(_CYAN)Active makefile targets$(_NORMAL)  : [$(TARGET_GROUPS)]"
+	@echo -e "$(_CYAN)Makefile version$(_NORMAL)         : $(MAKEFILE_VERSION)"
+
 
 .PHONY: all
 all: help
@@ -67,310 +159,51 @@ targets: help
 
 .PHONY: version
 version: ## display current version
-	@echo "version: $(APP_VERSION)"
+	@echo -e "$(_CYAN)Application version$(_NORMAL)  : $(APP_VERSION)"
+	@echo -e "$(_CYAN)Makefile version$(_NORMAL)     : $(MAKEFILE_VERSION)"
 
-## -- Conda targets ------------------------------------------------------------------------------------------------- ##
+## -- Virtualenv targets -------------------------------------------------------------------------------------------- ##
 
-.PHONY: conda-install
-conda-install: ## Install Conda on your local machine
-	@echo "Looking for [$(CONDA_TOOL)]..."; \
-	$(CONDA_TOOL) --version; \
-	if [ $$? != "0" ]; then \
-		echo " "; \
-		echo "Your defined Conda tool [$(CONDA_TOOL)] has not been found."; \
-		echo " "; \
-		echo "If you know you already have [$(CONDA_TOOL)] or some other Conda tool installed,"; \
-		echo "Check your [CONDA_TOOL] variable in the Makefile.private for typos."; \
-		echo " "; \
-		echo "If your conda tool has not been initiated through your .bashrc file,"; \
-		echo "consider using the full path to its executable instead when"; \
-		echo "defining your [CONDA_TOOL] variable"; \
-		echo " "; \
-		echo "If in doubt, don't install Conda and manually create and activate"; \
-		echo "your own Python environment."; \
-		echo " "; \
-		echo -n "Would you like to install Miniconda ? [y/N]: "; \
+VENV_PATH := $(PROJECT_PATH).venv
+VENV_ACTIVATE := $(VENV_PATH)/bin/activate
+
+.PHONY: venv-create
+venv-create: ## Create a virtualenv '.venv' at the root of the project folder 
+	@virtualenv $(VENV_PATH)
+	@make -s venv-activate
+
+.PHONY: venv-activate
+venv-activate: ## Print out the shell command to activate the project's virtualenv.
+	@echo "source $(VENV_ACTIVATE)"
+
+.PHONY: venv-remove
+venv-remove: ## Delete the virtualenv '.venv' at the root of the project folder.
+	@if [ -d $(VENV_PATH) ]; then \
+  	  echo "Current venv folder is [$(VENV_PATH)]"; \
+  	  if [ "$(AUTO_INSTALL)" = "true" ]; then \
+			ans="y";\
+	  else \
+	    echo ""; \
+		echo -n "Would you like to completely delete this virtual environment? [y/N]: "; \
 		read ans; \
-		case $$ans in \
+	  fi; \
+	  case $$ans in \
 			[Yy]*) \
-				echo "Fetching and installing miniconda"; \
-				echo " "; \
-				wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh; \
-    			bash ~/miniconda.sh -b -p $${HOME}/.conda; \
-    			export PATH=$${HOME}/.conda/bin:$$PATH; \
-    			conda init; \
-				/usr/bin/rm ~/miniconda.sh; \
+				echo ""; \
+				echo "Starting deletion process for [$(VENV_PATH)]"; \
+				rm -rf $(VENV_PATH); \
+				echo ""; \
+				echo "-- Deletion complete --"; \
 				;; \
 			*) \
-				echo "Skipping installation."; \
+	    		echo ""; \
+				echo "Skipping virtual environment deletion."; \
 				echo " "; \
 				;; \
 		esac; \
-	else \
-		echo "Conda tool [$(CONDA_TOOL)] has been found, skipping installation"; \
-	fi;
-
-.PHONY: conda-create-env
-conda-create-env: conda-install ## Create a local Conda environment based on `environment.yml` file
-	@$(CONDA_TOOL) env create -f environment.yml
-
-.PHONY: conda-env-info
-conda-env-info: ## Print information about active Conda environment using <CONDA_TOOL>
-	@$(CONDA_TOOL) info
-
-.PHONY: _conda-poetry-install
-_conda-poetry-install:
-	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) install -c conda-forge poetry; \
-	CURRENT_VERSION=$$(poetry --version | awk '{print $$NF}' | tr -d ')'); \
-	REQUIRED_VERSION="1.6.0"; \
-	if [ "$$(printf '%s\n' "$$REQUIRED_VERSION" "$$CURRENT_VERSION" | sort -V | head -n1)" != "$$REQUIRED_VERSION" ]; then \
-		echo "Poetry installed version $$CURRENT_VERSION is less than minimal version $$REQUIRED_VERSION, fixing urllib3 version to prevent problems"; \
-		poetry add "urllib3<2.0.0"; \
-	fi;
-
-.PHONY:conda-poetry-install
-conda-poetry-install: ## Install Poetry in currently active Conda environment. Will fail if Conda is not found
-	@poetry --version; \
-    	if [ $$? != "0" ]; then \
-			echo "Poetry not found, proceeding to install Poetry..."; \
-			echo "Looking for [$(CONDA_TOOL)]...";\
-			$(CONDA_TOOL) --version; \
-			if [ $$? != "0" ]; then \
-				echo "$(CONDA_TOOL) not found; Poetry will not be installed"; \
-			else \
-				echo "Installing Poetry with Conda in [$(CONDA_ENVIRONMENT)] environment"; \
-				make -s _conda-poetry-install; \
-			fi; \
-		fi;
-
-.PHONY: conda-poetry-uninstall
-conda-poetry-uninstall: ## Uninstall Poetry located in currently active Conda environment
-	$(CONDA_TOOL) run -n $(CONDA_ENVIRONMENT) $(CONDA_TOOL) remove poetry
-
-.PHONY: conda-clean-env
-conda-clean-env: ## Completely removes local project's Conda environment
-	$(CONDA_TOOL) env remove -n $(CONDA_ENVIRONMENT)
-
-## -- Poetry targets ------------------------------------------------------------------------------------------------ ##
-
-.PHONY: poetry-install-auto
-poetry-install-auto: ## Install Poetry in activated Conda environment, or with pipx if Conda not found
-	@poetry --version; \
-    	if [ $$? != "0" ]; then \
-			echo "Poetry not found, proceeding to install Poetry..."; \
-			echo "Looking for [$(CONDA_TOOL)]...";\
-			$(CONDA_TOOL) --version; \
-            if [ $$? != "0" ]; then \
-				echo "$(CONDA_TOOL) not found, trying with pipx"; \
-				pipx --version; \
-				if [ $$? != "0" ]; then \
-					echo "pipx not found; installing pipx"; \
-					pip install --user pipx; \
-					pipx ensurepath; \
-				fi; \
-					pipx install poetry; \
-				else \
-					echo "Installing poetry with Conda"; \
-					make -s _conda-poetry-install; \
-				fi; \
-		fi;
-
-.PHONY: poetry-install
-poetry-install: ## Install standalone Poetry using pipx and create Poetry env. Will install pipx if not found
-	@echo "Looking for Poetry version...";\
-	poetry --version; \
-    	if [ $$? != "0" ]; then \
-    	  	if [ "$(AUTO_INSTALL)" = "true" ]; then \
-				ans="y";\
-			else \
-			  	echo "Looking for pipx version...";\
-			  	pipx --version; \
-					if [ $$? != "0" ]; then \
-						echo""; \
-						echo -e "\e[1;39;41m-- WARNING --\e[0m The following pip has been found and will be used to install pipx: "; \
-						echo "    -> "$$(which pip); \
-						echo""; \
-						echo "If you do not have write permission to that environment, you will need to either activate"; \
-						echo "a different environment, or create a virtual one (ex. venv) to install pipx into it."; \
-						echo "See documentation for more information."; \
-						echo""; \
-						echo "Alternatively, the [make poetry-install-venv] target can also be used"; \
-						echo""; \
-    	  				echo -n "Would you like to install pipx and Poetry? [y/N]: "; \
-					else \
-					  	echo""; \
-    	  			  	echo -n "Would you like to install Poetry using pipx? [y/N]: "; \
-					fi; \
-				read ans; \
-			fi; \
-			case $$ans in \
-				[Yy]*) \
-					pipx --version; \
-					if [ $$? != "0" ]; then \
-						echo "pipx not found; installing pipx"; \
-						pip install --user pipx || pip install pipx; \
-						pipx ensurepath; \
-					fi; \
-						echo "Installing Poetry"; \
-						pipx install poetry; \
-						make -s poetry-create-env; \
-					;; \
-				*) \
-					echo "Skipping installation."; \
-					echo " "; \
-					;; \
-			esac; \
-		fi;
-
-.PHONY: poetry-install-venv
-poetry-install-venv: ## Install standalone Poetry and Poetry environment. Will install pipx in $HOME/.pipx_venv
-	@echo "Creating virtual environment using venv here : [$$HOME/.pipx_venv]"
-	@python3 -m venv $$HOME/.pipx_venv
-	@echo "Activating virtual environment [$$HOME/.pipx_venv]"
-	@source $$HOME/.pipx_venv/bin/activate
-	@pip3 install pipx
-	@make -s poetry-install
-
-.PHONY: poetry-env-info
-poetry-env-info: ## Information about the currently active environment used by Poetry
-	@poetry env info
-
-.PHONY: poetry-create-env
-poetry-create-env: ## Create a Poetry managed environment for the project (Outside of Conda environment).
-	@echo "Creating Poetry environment that will use Python $(PYTHON_VERSION)"; \
-	poetry env use $(PYTHON_VERSION); \
-	poetry env info
-	@echo""
-	@echo "This environment can be accessed either by using the <poetry run YOUR COMMAND>"
-	@echo "command, or activated with the <poetry shell> command."
-	@echo""
-	@echo "Use <poetry --help> and <poetry list> for more information"
-	@echo""
-
-.PHONY: poetry-remove-env
-poetry-remove-env: ## Remove current project's Poetry managed environment.
-	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
-		ans_env="y";\
-		env_path=$$(poetry env info -p); \
-		env_name=$$(basename $$env_path); \
-	else \
-		echo""; \
-		env_path=$$(poetry env info -p); \
-		if [[ "$$env_path" != "" ]]; then \
-			echo "The following environment has been found for this project: "; \
-			env_name=$$(basename $$env_path); \
-			echo""; \
-			echo "Env name : $$env_name"; \
-			echo "PATH     : $$env_path"; \
-			echo""; \
-			echo "If the active environment listed above is a Conda environment,"; \
-			echo "Choosing to delete it will have no effect; use the target <make conda-clean-env>"; \
-			echo""; \
-			echo -n "Would you like delete the environment listed above? [y/N]: "; \
-			read ans_env; \
-		else \
-		  env_name="None"; \
-		  env_path="None"; \
-  		fi; \
-	fi; \
-	if [[ $$env_name != "None" ]]; then \
-		case $$ans_env in \
-			[Yy]*) \
-				poetry env remove $$env_name || echo "No environment was removed"; \
-				;; \
-			*) \
-				echo "No environment was found/provided - skipping environment deletion"; \
-				;;\
-		esac; \
-	fi; \
-
-.PHONY: poetry-uninstall
-poetry-uninstall: poetry-remove-env ## Uninstall pipx-installed Poetry and the created environment
-	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
-		ans="y";\
-	else \
-		echo""; \
-		echo -n "Would you like to uninstall pipx-installed Poetry? [y/N]: "; \
-		read ans; \
-	fi; \
-	case $$ans in \
-		[Yy]*) \
-			pipx uninstall poetry; \
-			;; \
-		*) \
-			echo "Skipping uninstallation."; \
-			echo " "; \
-			;; \
-	esac; \
-
-.PHONY: poetry-uninstall-pipx
-poetry-uninstall-pipx: poetry-remove-env ## Uninstall pipx-installed Poetry, the created Poetry environment and pipx
-	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
-		ans="y";\
-	else \
-		echo""; \
-		echo -n "Would you like to uninstall pipx-installed Poetry and pipx? [y/N]: "; \
-		read ans; \
-	fi; \
-	case $$ans in \
-		[Yy]*) \
-			pipx uninstall poetry; \
-			pip uninstall -y pipx; \
-			;; \
-		*) \
-			echo "Skipping uninstallation."; \
-			echo " "; \
-			;; \
-	esac; \
-
-.PHONY: poetry-uninstall-venv
-poetry-uninstall-venv: ## Uninstall pipx-installed Poetry, the created Poetry environment, pipx and $HOME/.pipx_venv
-	@python3 -m venv $$HOME/.pipx_venv
-	@source $$HOME/.pipx_venv/bin/activate
-	@make -s poetry-uninstall-pipx
-	@if [ "$(AUTO_INSTALL)" = "true" ]; then \
-		ans="y";\
-	else \
-		echo""; \
-		echo -n "Would you like to remove the virtual environment located here : [$$HOME/.pipx_venv] ? [y/N]: "; \
-		read ans; \
-	fi; \
-	case $$ans in \
-		[Yy]*) \
-			rm -r $$HOME/.pipx_venv; \
-			;; \
-		*) \
-			echo "Skipping [$$HOME/.pipx_venv] virtual environment removal."; \
-			echo ""; \
-			;; \
-	esac; \
-
-## -- Install targets (All install targets will install Poetry if not found using `make poetry-install-auto`)-------- ##
-
-.PHONY: install
-install: install-precommit ## Install the application package, developer dependencies and pre-commit hook
-
-.PHONY: install-precommit
-install-precommit: install-dev## Install the pre-commit hooks (also installs developer dependencies)
-	@if [ -f .git/hooks/pre-commit ]; then \
-		echo "Pre-commit hook found"; \
-	else \
-	  	echo "Pre-commit hook not found, proceeding to configure it"; \
-		poetry run pre-commit install; \
-	fi;
-
-.PHONY: install-dev
-install-dev: poetry-install-auto ## Install the application along with developer dependencies
-	@poetry install --with dev
-
-.PHONY: install-with-lab
-install-with-lab: poetry-install-auto ## Install the application and it's dev dependencies, including Jupyter Lab
-	@poetry install --with dev --with lab
-
-
-.PHONY: install-package
-install-package: poetry-install-auto ## Install the application package only
-	@poetry install
+  	else \
+  	  echo "Venv [$(VENV_PATH)] does not exist, nothing to do"; \
+  	fi;
 
 ## -- Versioning targets -------------------------------------------------------------------------------------------- ##
 
@@ -381,83 +214,39 @@ ifeq ($(filter dry, $(MAKECMDGOALS)), dry)
 	BUMP_ARGS := $(BUMP_ARGS) --dry-run --allow-dirty
 endif
 
+.PHONY: dry
+dry: ## Add the dry target for a preview of changes; ex. 'make bump-major dry'
+	@-echo > /dev/null
+
 .PHONY: bump-major
 bump-major: ## Bump application major version  <X.0.0>
-	$(BUMP_TOOL) $(BUMP_ARGS) bump major
+	@$(ENV_COMMAND_TOOL) $(BUMP_TOOL) bump $(BUMP_ARGS) major
 
 .PHONY: bump-minor
 bump-minor: ## Bump application minor version  <0.X.0>
-	$(BUMP_TOOL) $(BUMP_ARGS) bump minor
+	@$(ENV_COMMAND_TOOL) $(BUMP_TOOL) bump $(BUMP_ARGS) minor
 
 .PHONY: bump-patch
 bump-patch: ## Bump application patch version  <0.0.X>
-	$(BUMP_TOOL) $(BUMP_ARGS) bump patch
-
-## -- Docker targets ------------------------------------------------------------------------------------------------ ##
-
-## -- Apptainer/Singularity targets --------------------------------------------------------------------------------- ##
-
-## -- Linting targets ----------------------------------------------------------------------------------------------- ##
-
-.PHONY: check-lint
-check-lint: ## Check code linting (black, isort, flake8, docformatter and pylint)
-	poetry run nox -s check
-
-.PHONY: check-pylint
-check-pylint: ## Check code linting with pylint
-	poetry run nox -s pylint
-
-.PHONY: fix-lint
-fix-lint: ## Fix code linting (black, isort, flynt, docformatter)
-	poetry run nox -s fix
-
-.PHONY: precommit
-precommit: ## Run Pre-commit on all files manually
-	poetry run nox -s precommit
+	@$(ENV_COMMAND_TOOL) $(BUMP_TOOL) bump $(BUMP_ARGS) patch
 
 
-## -- Tests targets ------------------------------------------------------------------------------------------------- ##
 
-.PHONY: test
-test: ## Run all tests
-	poetry run nox -s test
 
-TEST_ARGS ?=
-MARKER_TEST_ARGS = -m "$(TEST_ARGS)"
-SPECIFIC_TEST_ARGS = -k "$(TEST_ARGS)"
-CUSTOM_TEST_ARGS = "$(TEST_ARGS)"
+## -- General Install Targets ---------------------------------------------------------------------------------------- ##
 
-.PHONY: test-marker
-test-marker: ## Run tests using pytest markers. Ex. make test-marker TEST_ARGS="<marker>"
-	@if [ -n "$(TEST_ARGS)" ]; then \
-		poetry run nox -s test_custom -- -- $(MARKER_TEST_ARGS); \
+.PHONY: install
+install: install-dev install-precommit ## Install the application package, developer dependencies and pre-commit hook
+
+.PHONY: install-precommit
+install-precommit: ## Install the pre-commit hook (need to run one of the install targets first)
+	@if [ -f .git/hooks/pre-commit ]; then \
+		echo "Pre-commit hook found"; \
 	else \
-		echo "" ; \
-    	echo 'ERROR : Variable TEST_ARGS has not been set, please rerun the command like so :' ; \
-	  	echo "" ; \
-    	echo '            make test-marker TEST_ARGS="<marker>"' ; \
-	  	echo "" ; \
-    fi
-.PHONY: test-specific
-test-specific: ## Run specific tests using the -k option. Ex. make test-specific TEST_ARGS="<name-of-test>"
-	@if [ -n "$(TEST_ARGS)" ]; then \
-  		poetry run nox -s test_custom -- -- $(SPECIFIC_TEST_ARGS); \
-	else \
-		echo "" ; \
-    	echo 'ERROR : Variable TEST_ARGS has not been set, please rerun the command like so :' ; \
-	  	echo "" ; \
-    	echo '            make test-specific TEST_ARGS="<name-of-the-test>"' ; \
-	  	echo "" ; \
-    fi
+	  	echo "Pre-commit hook not found, proceeding to configure it"; \
+		$(ENV_COMMAND_TOOL) pre-commit install; \
+	fi;
 
-.PHONY: test-custom
-test-custom: ## Run tests with custom args. Ex. make test-custom TEST_ARGS="-m 'not offline'"
-	@if [ -n "$(TEST_ARGS)" ]; then \
-  		poetry run nox -s test_custom -- -- $(CUSTOM_TEST_ARGS); \
-	else \
-	  	echo "" ; \
-    	echo 'ERROR : Variable TEST_ARGS has not been set, please rerun the command like so :' ; \
-	  	echo "" ; \
-    	echo '            make test-custom TEST_ARGS="<custom-args>"' ; \
-	  	echo "" ; \
-    fi
+.PHONY: uninstall-precommit
+uninstall-precommit: ## Uninstall the pre-commit hook
+	@$(ENV_COMMAND_TOOL) pre-commit uninstall
