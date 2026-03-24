@@ -26,6 +26,20 @@ jobs:
           activate-environment: climateset
           use-mamba: true
 
+      - name: Install Poetry
+        run: |
+          make poetry-install-venv
+
+      - name: Cache Poetry virtualenv and dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
       - name: Get Date
         id: get-date
         run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
@@ -50,12 +64,9 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Install dependencies
-        env: 
-          CONDA_TOOL: mamba
         run: |
-          make poetry-install-venv
-          make install
+          make install-dev
 
       - name: Run linting checks
         run: |
-          make check-pylint
+          make pylint

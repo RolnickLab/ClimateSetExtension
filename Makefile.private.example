@@ -16,23 +16,34 @@
 
 ## Private variables
 
-# If you use a different Conda tool, say `micromamba`, or if you use a different alias
-# CONDA_TOOL := <YOU_CONDA_TOOL_IF_DIFFERENT_FROM_CONDA>
-DOCKER_COMPOSE := docker compose
-
-# Some targets use this variable. A 'false' value will ask user to confirm some steps.
-# a 'true' value will automatically install/remove without asking beforehand.
+# Most, but not all install/remove targets use this variable. A 'false' value will ask
+# users to confirm some steps. A 'true' value will automatically install/remove without
+# asking beforehand.
 AUTO_INSTALL := false
 
-# The default environment to use. The choices are as follow: [venv, poetry, conda]
-# If this is not set, the makefile will use the `poetry` command without activating
-# an environment before hand.
-# DEFAULT_INSTALL_ENV := conda
+# The default environment to use. The choices are as follow: [venv, uv, poetry, conda]
+# Here, we are talking about the virtual environment management - not dependencies.
+#
+# venv creates a standard virtual environment via the available 'virtualenv'
+# uv creates a virtual environment via 'uv venv -p $(PYTHON_VERSION)'
+# poetry creates a virtual environment via 'poetry env use $(PYTHON_VERSION)
+# conda create a virtual environment via '$(CONDA_TOOL) env create -f environment.yml'
+# 
+# This overrides the value found in 'Makefile.variables'
+DEFAULT_INSTALL_ENV := conda
 
-# The default environment where Poetry will be installed. The choices are as follow: [venv, conda]
-# If this is not set, the makefile will ask the user where they want to install Poetry
-#DEFAULT_POETRY_INSTALL_ENV := venv
+# The default build tool to use. The choices are as follows: [uv, poetry]
+# This value should also reflect the choice above - DO NOT choose 'poetry' or 'conda' for 
+# DEFAULT_INSTALL_ENV and then use 'uv' as the build tool
+#
+# This is the project's default.
+DEFAULT_BUILD_TOOL := poetry
 
+# This variable is to enable the '-y' flag when newer version of conda is available.
+# The default Mila conda module does not allow this flag; leave blanks or commented out
+# CONDA_YES_OPTION := -y
 
-## -- Private targets ------------------------------------------------------------------------------------------------##
+# If you use a different Conda tool, say `mamba`, or if you use a different alias
+CONDA_TOOL := mamba
 
+DOCKER_COMPOSE := docker compose
