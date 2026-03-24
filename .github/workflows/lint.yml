@@ -28,7 +28,7 @@ jobs:
 
       - name: Install Poetry
         run: |
-          make install-poetry-venv
+          make poetry-install-venv
 
       - name: Cache Poetry virtualenv and dependencies
         uses: actions/cache@v4
