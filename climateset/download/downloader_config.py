@@ -82,14 +82,12 @@ class BaseDownloaderConfig:
         Returns:
             None
         """
-        error_in_item_list = False
-        for e in item_list:
-            if e not in available_items:
-                self.logger.error(f"{name_of_item.capitalize()} [{e}] not supported.")
-                item_list.remove(e)
-                error_in_item_list = True
-        if error_in_item_list:
-            self.logger.error(f"Some, or all submitted {name_of_item}s were not found found - Please verify")
+        invalid_items = [e for e in item_list if e not in available_items]
+        for e in invalid_items:
+            self.logger.error(f"{name_of_item.capitalize()} [{e}] not supported.")
+            item_list.remove(e)
+        if invalid_items:
+            self.logger.error(f"Some or all submitted {name_of_item}s were not found - Please verify")
             self.logger.error(f"Available {name_of_item}s: {available_items}")
             self.logger.warning(f"List of valid submitted {name_of_item}s: {available_items}")
             self.config_is_valid = False
@@ -114,7 +112,6 @@ class BaseDownloaderConfig:
         existing_config = {}
         if config_full_path.exists():
             existing_config = get_yaml_config(config_full_path)
-            existing_config.update(existing_config)
         new_config = self.generate_config_dict()
         existing_config.update(new_config)
         with open(config_full_path, "w", encoding="utf-8") as config_file:
@@ -189,7 +186,7 @@ class Input4mipsDownloaderConfig(BaseDownloaderConfig):
             for b in self.biomass_vars:
                 try:
                     self.variables.remove(b)
-                except Exception as error:  # pylint: disable=W0718
+                except ValueError as error:
                     self.logger.warning(f"Caught the following exception but continuing : {error}")
 
         self.meta_vars_percentage = [

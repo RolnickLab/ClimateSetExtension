@@ -27,16 +27,12 @@ def download_from_config_file(config_file: str | pathlib.Path, logger: logging.L
         CMIP6: cmip6_download_from_config,
     }
 
-    verified_config_keys = []
     for config_key in config_dict:
         verified_key = match_key_in_list(input_key=config_key, key_list=AVAILABLE_CONFIGS)
         if verified_key:
-            verified_config_keys.append(verified_key)
+            downloader_factory[verified_key](config=config_file)
         else:
             logger.error(
-                f"Input project [{config_key}] from [{config_file}]was not found in available projects. "
+                f"Input project [{config_key}] from [{config_file}] was not found in available projects. "
                 "Removing it from download list"
             )
-
-    for config_key in verified_config_keys:
-        downloader_factory[config_key](config=config_file)

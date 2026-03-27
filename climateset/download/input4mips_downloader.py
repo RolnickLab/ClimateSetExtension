@@ -31,7 +31,7 @@ class Input4MipsDownloader(AbstractDownloader):
             self.logger.info(f"Downloading data for variable: {variable}")
             self.download_raw_input_single_var(variable=variable, institution_id=institution_id)
 
-        if self.config.download_biomass_burning & ("historical" in self.config.experiments):
+        if self.config.download_biomass_burning and ("historical" in self.config.experiments):
             for variable in self.config.biomass_vars:
                 self.logger.info(f"Downloading biomassburing data for variable: {variable}")
                 self.download_raw_input_single_var(variable=variable, institution_id="VUA")
@@ -134,7 +134,7 @@ class Input4MipsDownloaderV2(AbstractDownloader):
             self.logger.info(f"Downloading data for variable: {variable}")
             self.download_raw_input_single_var(variable=variable, institution_id=institution_id)
 
-        if self.config.download_biomass_burning & ("historical" in self.config.experiments):
+        if self.config.download_biomass_burning and ("historical" in self.config.experiments):
             for variable in self.config.biomass_vars:
                 self.logger.info(f"Downloading biomassburing data for variable: {variable}")
                 self.download_raw_input_single_var(variable=variable, institution_id="VUA")
