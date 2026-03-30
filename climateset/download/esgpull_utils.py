@@ -54,44 +54,45 @@ def isolated_esgpull_context(raw_data_path: Path | str) -> Generator[Esgpull, No
 
 
 def esgpull_search_and_download_esgf_raw_single_var(
+    esg: Esgpull,
     variable: str,
     institution_id: str,
     project: str,
     default_grid_label: str,
     default_frequency: str,
     preferred_version: str,
-    data_dir: Path | str,
+    data_dir: Path,
     distrib: bool = False,
     logger: logging.Logger = LOGGER,
 ):
-    with isolated_esgpull_context(data_dir) as esg:
-        initial_constraints = Input4MIPsConstraints(
-            project=project, institution_id=institution_id, variable=variable
-        ).to_esgpull_query()
+    initial_constraints = Input4MIPsConstraints(
+        project=project, institution_id=institution_id, variable=variable
+    ).to_esgpull_query()
 
-        query = Query(selection=initial_constraints)
-        query.options.distrib = distrib
+    query = Query(selection=initial_constraints)
+    query.options.distrib = distrib
 
-        _apply_facet_fallback(esg, query, "grid_label", default_grid_label, logger)
-        _apply_facet_fallback(esg, query, "frequency", default_frequency, logger)
+    _apply_facet_fallback(esg, query, "grid_label", default_grid_label, logger)
+    _apply_facet_fallback(esg, query, "frequency", default_frequency, logger)
 
-        # Esgpull handles multi-values natively. Fetch targets if any.
-        hints = esg.context.hints(query, file=False, facets=["target_mip"])
-        if hints and "target_mip" in hints[0] and hints[0]["target_mip"]:
-            target_mips = list(hints[0]["target_mip"].keys())
-            logger.info(f"Available target mips: {target_mips}")
-            query.selection["target_mip"] = target_mips
+    # Esgpull handles multi-values natively. Fetch targets if any.
+    hints = esg.context.hints(query, file=False, facets=["target_mip"])
+    if hints and "target_mip" in hints[0] and hints[0]["target_mip"]:
+        target_mips = list(hints[0]["target_mip"].keys())
+        logger.info(f"Available target mips: {target_mips}")
+        query.selection["target_mip"] = target_mips
 
-        _apply_version_fallback(esg, query, preferred_version, logger)
+    _apply_version_fallback(esg, query, preferred_version, logger)
 
-        files = esg.context.search(query, file=True)
-        logger.info(f"Result len: {len(files)}")
+    files = esg.context.search(query, file=True)
+    logger.info(f"Result len: {len(files)}")
 
-        dest_dir = Path(data_dir) / f"{project}/raw_input_vars/{institution_id}/{variable}"
-        return _download_and_move_files(esg, files, dest_dir, logger)
+    dest_dir = Path(data_dir) / f"{project}/raw_input_vars/{institution_id}/{variable}"
+    return _download_and_move_files(esg, files, dest_dir, logger)
 
 
 def esgpull_search_and_download_esgf_biomass_single_var(
+    esg: Esgpull,
     variable: str,
     variable_id: str,
     institution_id: str,
@@ -99,34 +100,34 @@ def esgpull_search_and_download_esgf_biomass_single_var(
     default_grid_label: str,
     default_frequency: str,
     preferred_version: str,
-    data_dir: Path | str,
+    data_dir: Path,
     distrib: bool = False,
     logger: logging.Logger = LOGGER,
 ):
-    with isolated_esgpull_context(data_dir) as esg:
-        initial_constraints = Input4MIPsConstraints(
-            project=project,
-            institution_id=institution_id,
-            variable=variable,
-            variable_id=variable_id,
-        ).to_esgpull_query()
+    initial_constraints = Input4MIPsConstraints(
+        project=project,
+        institution_id=institution_id,
+        variable=variable,
+        variable_id=variable_id,
+    ).to_esgpull_query()
 
-        query = Query(selection=initial_constraints)
-        query.options.distrib = distrib
+    query = Query(selection=initial_constraints)
+    query.options.distrib = distrib
 
-        _apply_facet_fallback(esg, query, "grid_label", default_grid_label, logger)
-        _apply_facet_fallback(esg, query, "frequency", default_frequency, logger)
-        _apply_version_fallback(esg, query, preferred_version, logger)
+    _apply_facet_fallback(esg, query, "grid_label", default_grid_label, logger)
+    _apply_facet_fallback(esg, query, "frequency", default_frequency, logger)
+    _apply_version_fallback(esg, query, preferred_version, logger)
 
-        files = esg.context.search(query, file=True)
-        logger.info(f"Result len: {len(files)}")
+    files = esg.context.search(query, file=True)
+    logger.info(f"Result len: {len(files)}")
 
-        dest_dir = Path(data_dir) / f"{project}/meta_vars/{institution_id}/{variable}"
-        logger.info(f"Destination folder: [{dest_dir}]")
-        return _download_and_move_files(esg, files, dest_dir, logger)
+    dest_dir = Path(data_dir) / f"{project}/meta_vars/{institution_id}/{variable}"
+    logger.info(f"Destination folder: [{dest_dir}]")
+    return _download_and_move_files(esg, files, dest_dir, logger)
 
 
 def esgpull_search_and_download_esgf_model_single_var(
+    esg: Esgpull,
     model: str,
     variable: str,
     experiment: str,
@@ -136,35 +137,34 @@ def esgpull_search_and_download_esgf_model_single_var(
     preferred_version: str,
     max_ensemble_members: int,
     ensemble_members: list[str],
-    data_dir: Path | str,
+    data_dir: Path,
     distrib: bool = False,
     logger: logging.Logger = LOGGER,
 ):
-    with isolated_esgpull_context(data_dir) as esg:
-        cmip_constraints = CMIP6Constraints(
-            project=project, experiment_id=experiment, source_id=model, variable=variable
-        ).to_esgpull_query()
+    cmip_constraints = CMIP6Constraints(
+        project=project, experiment_id=experiment, source_id=model, variable=variable
+    ).to_esgpull_query()
 
-        query = Query(selection=cmip_constraints)
-        query.options.distrib = distrib
+    query = Query(selection=cmip_constraints)
+    query.options.distrib = distrib
 
-        _apply_facet_fallback(esg, query, "frequency", default_frequency, logger)
-        _apply_facet_fallback(esg, query, "grid_label", default_grid_label, logger)
+    _apply_facet_fallback(esg, query, "frequency", default_frequency, logger)
+    _apply_facet_fallback(esg, query, "grid_label", default_grid_label, logger)
 
-        ensemble_member_final_list = _apply_variants_filter(esg, query, max_ensemble_members, ensemble_members, logger)
-        if not ensemble_member_final_list:
-            logger.info("No items were found for this request.")
-            return None
+    ensemble_member_final_list = _apply_variants_filter(esg, query, max_ensemble_members, ensemble_members, logger)
+    if not ensemble_member_final_list:
+        logger.info("No items were found for this request.")
+        return None
 
-        # Esgpull supports multi-value list queries seamlessly
-        query.selection["variant_label"] = ensemble_member_final_list
-        _apply_version_fallback(esg, query, preferred_version, logger)
+    # Esgpull supports multi-value list queries seamlessly
+    query.selection["variant_label"] = ensemble_member_final_list
+    _apply_version_fallback(esg, query, preferred_version, logger)
 
-        files = esg.context.search(query, file=True)
-        logger.info(f"Result len {len(files)}")
+    files = esg.context.search(query, file=True)
+    logger.info(f"Result len {len(files)}")
 
-        dest_dir = Path(data_dir) / f"{project}/{model}/{variable}"
-        return _download_and_move_files(esg, files, dest_dir, logger)
+    dest_dir = Path(data_dir) / f"{project}/{model}/{variable}"
+    return _download_and_move_files(esg, files, dest_dir, logger)
 
 
 def _download_and_move_files(esg, files, dest_dir: Path, logger: logging.Logger = LOGGER):
