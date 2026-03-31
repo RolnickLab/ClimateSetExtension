@@ -23,11 +23,11 @@ Prove that reusing a single `Esgpull` instance across multiple sequential search
 - **Relevant skills:** `tdd` (Red-Green-Refactor), `python` (pytest fixtures)
 
 ## 3. Subtasks
-- [ ] 1. Create `tests/test_download/test_esgpull_context_reuse.py` with a focused integration test class
-- [ ] 2. Write a test that opens one `isolated_esgpull_context`, calls `esgpull_search_and_download_esgf_model_single_var` twice with different `(variable, experiment)` pairs, and asserts each call's `Query` was constructed with the correct constraints (TDD Red — expect this to pass if esgpull creates fresh `Query` objects per call, or fail if state bleeds)
-- [ ] 3. If facet bleed is detected: add a `Query` reset or fresh `Query()` construction guard at the top of each function — then re-run to green
-- [ ] 4. Add a lifecycle test asserting that `isolated_esgpull_context` creates exactly one `.esgpull_jobs/<UUID>` directory and cleans it up on exit
-- [ ] 5. Run the new tests in isolation to confirm they pass
+- [x] 1. Create `tests/test_download/test_esgpull_context_reuse.py` with a focused integration test class
+- [x] 2. Write a test that opens one `isolated_esgpull_context`, calls `esgpull_search_and_download_esgf_model_single_var` twice with different `(variable, experiment)` pairs, and asserts each call's `Query` was constructed with the correct constraints (TDD Red — expect this to pass if esgpull creates fresh `Query` objects per call, or fail if state bleeds)
+- [x] 3. If facet bleed is detected: add a `Query` reset or fresh `Query()` construction guard at the top of each function — then re-run to green
+- [x] 4. Add a lifecycle test asserting that `isolated_esgpull_context` creates exactly one `.esgpull_jobs/<UUID>` directory and cleans it up on exit
+- [x] 5. Run the new tests in isolation to confirm they pass
 
 ## 4. Requirements & Constraints
 - **Technical:**
@@ -38,11 +38,11 @@ Prove that reusing a single `Esgpull` instance across multiple sequential search
 - **Out of scope:** Testing V1 downloaders. Performance benchmarking of shared vs. per-variable contexts.
 
 ## 5. Acceptance Criteria
-- [ ] AC-1: A test exists that reuses one `Esgpull` instance across 2+ calls to `esgpull_search_and_download_esgf_model_single_var` with different parameters.
-- [ ] AC-2: The test asserts that each call's search results contain only files matching its own constraints (no cross-contamination).
-- [ ] AC-3: A lifecycle test asserts exactly one UUID directory is created and cleaned up per `isolated_esgpull_context` usage.
-- [ ] AC-4: All new tests pass: `make test-custom TEST_ARGS="tests/test_download/test_esgpull_context_reuse.py -v"` exits 0.
-- [ ] AC-5: `make precommit` exits 0.
+- [x] AC-1: A test exists that reuses one `Esgpull` instance across 2+ calls to `esgpull_search_and_download_esgf_model_single_var` with different parameters.
+- [x] AC-2: The test asserts that each call's search results contain only files matching its own constraints (no cross-contamination).
+- [x] AC-3: A lifecycle test asserts exactly one UUID directory is created and cleaned up per `isolated_esgpull_context` usage.
+- [x] AC-4: All new tests pass: `make test-custom TEST_ARGS="tests/test_download/test_esgpull_context_reuse.py -v"` exits 0.
+- [x] AC-5: `make precommit` exits 0.
 
 ## 6. Testing & Validation
 ```bash
