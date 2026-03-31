@@ -272,3 +272,32 @@ def test_download_from_model_single_var(cmip6_downloader_object, mock_subprocess
     mock_subprocess_run.assert_called()
     for f in expected_files:
         _assert_content_is_in_wget_script(mock_call=mock_subprocess_run, string_content=f)
+
+
+@patch("climateset.download.input4mips_downloader.isolated_esgpull_context")
+def test_input4mips_downloader_v2_context_lifecycle(mock_context, input4mips_downloader_object):
+    from climateset.download.input4mips_downloader import Input4MipsDownloaderV2
+
+    mock_context.return_value.__enter__.return_value = "mock_esg"
+    downloader = Input4MipsDownloaderV2(config=input4mips_downloader_object.config)
+    with (
+        patch.object(downloader, "download_raw_input_single_var"),
+        patch.object(downloader, "download_meta_historic_biomassburning_single_var"),
+    ):
+        downloader.download()
+
+    # Assert context manager was called exactly once
+    assert mock_context.call_count == 1
+
+
+@patch("climateset.download.cmip6_downloader.isolated_esgpull_context")
+def test_cmip6_downloader_v2_context_lifecycle(mock_context, cmip6_downloader_object):
+    from climateset.download.cmip6_downloader import CMIP6DownloaderV2
+
+    mock_context.return_value.__enter__.return_value = "mock_esg"
+    downloader = CMIP6DownloaderV2(config=cmip6_downloader_object.config)
+    with patch.object(downloader, "download_from_model_single_var"):
+        downloader.download()
+
+    # Assert context manager was called exactly once
+    assert mock_context.call_count == 1
