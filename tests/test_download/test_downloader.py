@@ -1,5 +1,5 @@
 import shutil
-from unittest.mock import call, patch
+from unittest.mock import ANY, call, patch
 
 import pytest
 
@@ -60,6 +60,30 @@ EXPECTED_MINIMAL_MODEL_CALLS = [
     call(model="NorESM2-LM", project="CMIP6", variable="tas", experiment="ssp126"),
 ]
 MODEL_SINGLE_NUM_OF_CALLS = 1
+
+EXPECTED_MINIMAL_RAW_INPUT_CALLS_V2 = [
+    call(esg=ANY, variable="CO2_em_anthro", institution_id="PNNL-JGCRI"),
+    call(esg=ANY, variable="CO2_em_AIR_anthro", institution_id="PNNL-JGCRI"),
+    call(esg=ANY, variable="CH4_em_openburning", institution_id="IAMC"),
+    call(esg=ANY, variable="CH4_em_anthro", institution_id="PNNL-JGCRI"),
+    call(esg=ANY, variable="CH4_em_AIR_anthro", institution_id="PNNL-JGCRI"),
+    call(esg=ANY, variable="CO2", institution_id="VUA"),
+    call(esg=ANY, variable="CH4", institution_id="VUA"),
+    call(esg=ANY, variable="CH4_openburning_share", institution_id="IAMC"),
+]
+
+EXPECTED_MINIMAL_META_HISTORIC_CALLS_V2 = [
+    call(esg=ANY, variable="CH4_percentage_AGRI", institution_id="VUA"),
+    call(esg=ANY, variable="CH4_percentage_BORF", institution_id="VUA"),
+    call(esg=ANY, variable="CH4_percentage_DEFO", institution_id="VUA"),
+    call(esg=ANY, variable="CH4_percentage_PEAT", institution_id="VUA"),
+    call(esg=ANY, variable="CH4_percentage_SAVA", institution_id="VUA"),
+    call(esg=ANY, variable="CH4_percentage_TEMF", institution_id="VUA"),
+]
+
+EXPECTED_MINIMAL_MODEL_CALLS_V2 = [
+    call(esg=ANY, model="NorESM2-LM", project="CMIP6", variable="tas", experiment="ssp126"),
+]
 
 
 def delete_tmp_dir():
@@ -173,11 +197,11 @@ def test_download_from_config_file(
 ):
     download_from_config_file(config_file=MINIMAL_DATASET_CONFIG_PATH)
 
-    assert mock_raw_input_single_var_v2.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS
+    assert mock_raw_input_single_var_v2.call_args_list == EXPECTED_MINIMAL_RAW_INPUT_CALLS_V2
     assert mock_raw_input_single_var_v2.call_count == RAW_INPUT_NUM_OF_CALLS
-    assert mock_meta_historic_single_var_v2.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS
+    assert mock_meta_historic_single_var_v2.call_args_list == EXPECTED_MINIMAL_META_HISTORIC_CALLS_V2
     assert mock_meta_historic_single_var_v2.call_count == META_HISTORIC_NUM_OF_CALLS
-    assert mock_model_single_var_v2.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS
+    assert mock_model_single_var_v2.call_args_list == EXPECTED_MINIMAL_MODEL_CALLS_V2
     assert mock_model_single_var_v2.call_count == MODEL_SINGLE_NUM_OF_CALLS
 
 
