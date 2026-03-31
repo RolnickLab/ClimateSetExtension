@@ -31,15 +31,15 @@ Move the `isolated_esgpull_context` lifecycle from the utility functions (remove
 - **Relevant skills:** `python` (DIP, composition), `systemdesign` (lifecycle management, SRP)
 
 ## 3. Subtasks
-- [ ] 1. Add `from climateset.download.esgpull_utils import isolated_esgpull_context` to `cmip6_downloader.py` (if not already imported)
-- [ ] 2. Wrap the triple-nested loop in `CMIP6DownloaderV2.download()` with `with isolated_esgpull_context(self.config.data_dir) as esg:`
-- [ ] 3. Add `esg: Esgpull` parameter to `CMIP6DownloaderV2.download_from_model_single_var()` and pass it through to `esgpull_search_and_download_esgf_model_single_var`
-- [ ] 4. Update the call site in `CMIP6DownloaderV2.download()` to pass `esg` to `self.download_from_model_single_var()`
-- [ ] 5. Add `from climateset.download.esgpull_utils import isolated_esgpull_context` to `input4mips_downloader.py` (if not already imported)
-- [ ] 6. Wrap all iteration loops in `Input4MipsDownloaderV2.download()` with a single `with isolated_esgpull_context(self.config.data_dir) as esg:` block
-- [ ] 7. Add `esg: Esgpull` parameter to `Input4MipsDownloaderV2.download_raw_input_single_var()` and `Input4MipsDownloaderV2.download_meta_historic_biomassburning_single_var()` — forward to the corresponding `esgpull_utils` function
-- [ ] 8. Update all call sites in `Input4MipsDownloaderV2.download()` to pass `esg`
-- [ ] 9. Verify syntax validity of both modified files
+- [x] 1. Add `from climateset.download.esgpull_utils import isolated_esgpull_context` to `cmip6_downloader.py` (if not already imported)
+- [x] 2. Wrap the triple-nested loop in `CMIP6DownloaderV2.download()` with `with isolated_esgpull_context(self.config.data_dir) as esg:`
+- [x] 3. Add `esg: Esgpull` parameter to `CMIP6DownloaderV2.download_from_model_single_var()` and pass it through to `esgpull_search_and_download_esgf_model_single_var`
+- [x] 4. Update the call site in `CMIP6DownloaderV2.download()` to pass `esg` to `self.download_from_model_single_var()`
+- [x] 5. Add `from climateset.download.esgpull_utils import isolated_esgpull_context` to `input4mips_downloader.py` (if not already imported)
+- [x] 6. Wrap all iteration loops in `Input4MipsDownloaderV2.download()` with a single `with isolated_esgpull_context(self.config.data_dir) as esg:` block
+- [x] 7. Add `esg: Esgpull` parameter to `Input4MipsDownloaderV2.download_raw_input_single_var()` and `Input4MipsDownloaderV2.download_meta_historic_biomassburning_single_var()` — forward to the corresponding `esgpull_utils` function
+- [x] 8. Update all call sites in `Input4MipsDownloaderV2.download()` to pass `esg`
+- [x] 9. Verify syntax validity of both modified files
 
 ## 4. Requirements & Constraints
 - **Technical:**
@@ -50,13 +50,13 @@ Move the `isolated_esgpull_context` lifecycle from the utility functions (remove
 - **Out of scope:** Modifying V1 downloaders (`CMIP6Downloader`, `Input4MipsDownloader`), tests (TASK-004), or the `isolated_esgpull_context` function itself.
 
 ## 5. Acceptance Criteria
-- [ ] AC-1: `CMIP6DownloaderV2.download()` opens exactly one `isolated_esgpull_context` wrapping all iterations.
-- [ ] AC-2: `Input4MipsDownloaderV2.download()` opens exactly one `isolated_esgpull_context` wrapping all iterations.
-- [ ] AC-3: `download_from_model_single_var`, `download_raw_input_single_var`, and `download_meta_historic_biomassburning_single_var` all accept and forward `esg: Esgpull`.
-- [ ] AC-4: No direct calls to `isolated_esgpull_context` exist outside the two `download()` methods.
-- [ ] AC-5: `python3 -c "import ast; ast.parse(open('climateset/download/cmip6_downloader.py').read())"` exits 0.
-- [ ] AC-6: `python3 -c "import ast; ast.parse(open('climateset/download/input4mips_downloader.py').read())"` exits 0.
-- [ ] AC-7: `make precommit` and `make pylint` exit 0 for modified files.
+- [x] AC-1: `CMIP6DownloaderV2.download()` opens exactly one `isolated_esgpull_context` wrapping all iterations.
+- [x] AC-2: `Input4MipsDownloaderV2.download()` opens exactly one `isolated_esgpull_context` wrapping all iterations.
+- [x] AC-3: `download_from_model_single_var`, `download_raw_input_single_var`, and `download_meta_historic_biomassburning_single_var` all accept and forward `esg: Esgpull`.
+- [x] AC-4: No direct calls to `isolated_esgpull_context` exist outside the two `download()` methods.
+- [x] AC-5: `python3 -c "import ast; ast.parse(open('climateset/download/cmip6_downloader.py').read())"` exits 0.
+- [x] AC-6: `python3 -c "import ast; ast.parse(open('climateset/download/input4mips_downloader.py').read())"` exits 0.
+- [x] AC-7: `make precommit` and `make pylint` exit 0 for modified files.
 
 ## 6. Testing & Validation
 ```bash

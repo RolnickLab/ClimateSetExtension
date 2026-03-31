@@ -1,3 +1,7 @@
+from pathlib import Path
+
+from esgpull import Esgpull
+
 from climateset.download.abstract_downloader import AbstractDownloader
 from climateset.download.constants.esgf import INPUT4MIPS
 from climateset.download.downloader_config import (
@@ -7,6 +11,7 @@ from climateset.download.downloader_config import (
 from climateset.download.esgpull_utils import (
     esgpull_search_and_download_esgf_biomass_single_var,
     esgpull_search_and_download_esgf_raw_single_var,
+    isolated_esgpull_context,
 )
 from climateset.download.utils import (
     search_and_download_esgf_biomass_single_var,
@@ -126,30 +131,34 @@ class Input4MipsDownloaderV2(AbstractDownloader):
         self.logger = LOGGER
 
     def download(self):
-        for variable in self.config.variables:
-            if variable.endswith("openburning"):
-                institution_id = "IAMC"
-            else:
-                institution_id = "PNNL-JGCRI"
-            self.logger.info(f"Downloading data for variable: {variable}")
-            self.download_raw_input_single_var(variable=variable, institution_id=institution_id)
+        with isolated_esgpull_context(self.config.data_dir) as esg:
+            for variable in self.config.variables:
+                if variable.endswith("openburning"):
+                    institution_id = "IAMC"
+                else:
+                    institution_id = "PNNL-JGCRI"
+                self.logger.info(f"Downloading data for variable: {variable}")
+                self.download_raw_input_single_var(esg=esg, variable=variable, institution_id=institution_id)
 
-        if self.config.download_biomass_burning and ("historical" in self.config.experiments):
-            for variable in self.config.biomass_vars:
-                self.logger.info(f"Downloading biomassburing data for variable: {variable}")
-                self.download_raw_input_single_var(variable=variable, institution_id="VUA")
+            if self.config.download_biomass_burning and ("historical" in self.config.experiments):
+                for variable in self.config.biomass_vars:
+                    self.logger.info(f"Downloading biomassburing data for variable: {variable}")
+                    self.download_raw_input_single_var(esg=esg, variable=variable, institution_id="VUA")
 
-        if self.config.download_metafiles:
-            for variable in self.config.meta_vars_percentage:
-                # percentage are historic and have no scenarios
-                self.logger.info(f"Downloading meta percentage data for variable: {variable}")
-                self.download_meta_historic_biomassburning_single_var(variable=variable, institution_id="VUA")
-            for variable in self.config.meta_vars_share:
-                self.logger.info(f"Downloading meta openburning share data for variable: {variable}")
-                self.download_raw_input_single_var(variable=variable, institution_id="IAMC")
+            if self.config.download_metafiles:
+                for variable in self.config.meta_vars_percentage:
+                    # percentage are historic and have no scenarios
+                    self.logger.info(f"Downloading meta percentage data for variable: {variable}")
+                    self.download_meta_historic_biomassburning_single_var(
+                        esg=esg, variable=variable, institution_id="VUA"
+                    )
+                for variable in self.config.meta_vars_share:
+                    self.logger.info(f"Downloading meta openburning share data for variable: {variable}")
+                    self.download_raw_input_single_var(esg=esg, variable=variable, institution_id="IAMC")
 
     def download_raw_input_single_var(
         self,
+        esg: Esgpull,
         variable: str,
         project: str = INPUT4MIPS,
         institution_id: str = "PNNL-JGCRI",
@@ -173,19 +182,21 @@ class Input4MipsDownloaderV2(AbstractDownloader):
         # Search context is sensitive to order and sequence, which is why
         # it's done in different steps instead of putting everything in `new_context`
         results_list = esgpull_search_and_download_esgf_raw_single_var(
+            esg=esg,
             variable=variable,
             project=project,
             institution_id=institution_id,
             default_grid_label=default_grid_label,
             default_frequency=default_frequency,
             preferred_version=preferred_version,
-            data_dir=self.config.data_dir,
+            data_dir=Path(self.config.data_dir),
             distrib=self.distrib,
         )
         self.logger.info(f"Download results: {results_list}")
 
     def download_meta_historic_biomassburning_single_var(
         self,
+        esg: Esgpull,
         variable: str,
         institution_id: str,
         project: str = INPUT4MIPS,
@@ -211,6 +222,7 @@ class Input4MipsDownloaderV2(AbstractDownloader):
         # Search context is sensitive to order and sequence, which is why
         # it's done in different steps instead of putting everything in `new_context`
         results = esgpull_search_and_download_esgf_biomass_single_var(
+            esg=esg,
             variable=variable_search,
             variable_id=variable_id,
             project=project,
@@ -218,7 +230,7 @@ class Input4MipsDownloaderV2(AbstractDownloader):
             default_grid_label=default_grid_label,
             default_frequency=default_frequency,
             preferred_version=preferred_version,
-            data_dir=self.config.data_dir,
+            data_dir=Path(self.config.data_dir),
             distrib=self.distrib,
         )
         self.logger.info(f"Download results: {results}")
