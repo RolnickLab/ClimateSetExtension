@@ -1,0 +1,23 @@
+from .cmip6 import CMIP6_CONSTANTS
+from .cmip6plus import CMIP6PLUS_CONSTANTS
+from .input4mips import INPUT4MIPS_CONSTANTS
+
+CMIP6 = "CMIP6"
+CMIP6PLUS = "CMIP6Plus"
+INPUT4MIPS = "input4MIPs"
+
+ESGF_PROJECTS = frozenset([CMIP6, CMIP6PLUS, INPUT4MIPS])
+
+# constant classes for esgf projects implemented here
+# add your own esgf project for downloading to download/constants/ and add the constant class to the dict and lists here
+ESGF_PROJECTS_CONSTANTS = {
+    CMIP6: CMIP6_CONSTANTS,
+    CMIP6PLUS: CMIP6PLUS_CONSTANTS,
+    INPUT4MIPS: INPUT4MIPS_CONSTANTS,
+}
+
+# datasets that provide inputs to climate models
+ESGF_RAW_INPUT_LIST = [INPUT4MIPS]
+
+# datasets that provide outputs from climate models
+ESGF_MODEL_OUTPUT_LIST = [CMIP6, CMIP6PLUS]

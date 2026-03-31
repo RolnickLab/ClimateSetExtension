@@ -1,0 +1,13 @@
+node_link: "http://esgf-data2.llnl.gov"
+
+model_sources:
+  - "HasGEM3-GC31-LL"
+
+var_source_lookup:
+  - "areacella"
+  - "mrsofc"
+
+supported_experiments:
+  - "hist-lu"
+  - "hist-piAer"
+  - "hist-piVolc"

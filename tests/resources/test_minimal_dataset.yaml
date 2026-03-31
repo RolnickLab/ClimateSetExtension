@@ -1,4 +1,7 @@
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["tas", "CO2", "CH4"]
-  experiments: ["historical", "ssp126"]
+CMIP6:
+  models: ["NorESM2-LM"]
+  variables: ["tas"]
+  experiments: ["ssp126"]
+input4MIPs:
+  variables: ["CO2", "CH4"]
+  experiments: ["historical","ssp126"]

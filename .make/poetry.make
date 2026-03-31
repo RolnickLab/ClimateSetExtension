@@ -14,13 +14,16 @@ ifeq ($(DEFAULT_INSTALL_ENV),venv)
 POETRY_COMMAND_WITH_PROJECT_ENV := source $(VENV_ACTIVATE) && $(POETRY_COMMAND_WITH_PROJECT_ENV)
 else ifeq ($(DEFAULT_INSTALL_ENV),poetry)
 POETRY_COMMAND_WITH_PROJECT_ENV := $(POETRY_COMMAND_WITH_PROJECT_ENV)
-else ifeq ($(DEFAULT_INSTALL_ENV),conda)
-POETRY_COMMAND_WITH_PROJECT_ENV := $(CONDA_ENV_TOOL) run -n $(CONDA_ENVIRONMENT) $(POETRY_COMMAND_WITH_PROJECT_ENV)
 endif
 
 # Do not rename these unless you also rename across all other make files in .make/
 ENV_COMMAND_TOOL := $(POETRY_COMMAND_WITH_PROJECT_ENV) run
 ENV_INSTALL_TOOL := $(POETRY_COMMAND_WITH_PROJECT_ENV) install
+
+ifeq ($(DEFAULT_INSTALL_ENV),conda)
+ENV_COMMAND_TOOL := $(CONDA_ENV_TOOL) run -n $(CONDA_ENVIRONMENT)
+ENV_INSTALL_TOOL := $(ENV_COMMAND_TOOL) $(POETRY_COMMAND_WITH_PROJECT_ENV) install
+endif
 
 
 ## -- Poetry targets ------------------------------------------------------------------------------------------------ ##

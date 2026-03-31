@@ -1,4 +1,3 @@
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["C02"]
-  experiments: ["ssp460"]
+input4MIPs:
+  variables: [ "CO2" ]
+  experiments: [ "ssp460" ]

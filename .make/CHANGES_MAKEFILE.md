@@ -6,6 +6,12 @@ ______________________________________________________________________
 
 <!-- (New changes here in list form) -->
 
+## [1.3.1](https://github.com/RolnickLab/lab-advanced-template/tree/makefile-1.3.1) (2026-03-24)
+
+______________________________________________________________________
+
+- Fix issue where the `ENV_COMMAND_TOOL` variable is not what was expected with `conda` environments
+
 ## [1.3.0](https://github.com/RolnickLab/lab-advanced-template/tree/makefile-1.3.0) (2026-02-12)
 
 ______________________________________________________________________

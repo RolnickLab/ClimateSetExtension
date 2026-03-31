@@ -176,9 +176,7 @@ def test_custom(session):
         if not ARG_RE.match(a):
             session.error(f"unsafe pytest argument detected: {a!r}")
 
-    session.run(
-        "python", "-m", "pytest", external=True, *session.posargs
-    )  # Pass additional arguments directly to pytest
+    session.run("pytest", *session.posargs, external=True)  # Pass additional arguments directly to pytest
 
 
 @nox.session()

@@ -1,4 +1,3 @@
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["BC"]
-  experiments: ["ssp585"]
+input4MIPs:
+  variables: [ "BC" ]
+  experiments: [ "ssp585" ]

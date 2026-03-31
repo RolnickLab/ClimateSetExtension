@@ -1,4 +1,5 @@
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["tas"]
-  experiments: ["ssp245"]
+CMIP6:
+  models: ["NorESM2-LM"]
+  variables: [ "tas" ]
+  experiments: [ "ssp245" ]
+  ensemble_members: [ "r9i1p1f2", "r8i1p1f2" ]

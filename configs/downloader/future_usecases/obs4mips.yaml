@@ -1,4 +1,4 @@
-models: ["ESACCI-CLOUD-ATSR2-AATSR-3-0"]
-downloader_kwargs:
+#ESACCI-CLOUD-ATSR2-AATSR-3-0:
+obs4MIPs:
   variables: ["pctCCI"]
   experiments: [""]

@@ -1,4 +1,3 @@
-models: ["E3SM"]
-downloader_kwargs:
-  variables: ["???"]
-  experiments: ["ssp585"]
+E3SM:
+  variables: [ "???" ]
+  experiments: [ "ssp585" ]

@@ -1,0 +1,5 @@
+OMIP:
+  models: ["NorESM2-LM"]
+  variables: [ "omldamax" ] # sea-surface temperature (often used as forcing for atmo models)
+  experiments: [ "omip1" ]
+  ensemble_members: [ "r1i1p1f1" ]

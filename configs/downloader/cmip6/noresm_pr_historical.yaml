@@ -1,4 +1,5 @@
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["pr"]
-  experiments: ["historical"]
+CMIP6:
+  models: ["NorESM2-LM"]
+  variables: [ "pr" ]
+  experiments: [ "historical" ]
+  max_ensemble_members: 1

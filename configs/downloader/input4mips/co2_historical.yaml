@@ -1,4 +1,3 @@
-models: ["NorESM2-LM"]
-downloader_kwargs:
-  variables: ["CO2"]
-  experiments: ["historical"]
+input4MIPs:
+  variables: [ "CO2" ]
+  experiments: [ "historical" ]
