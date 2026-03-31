@@ -57,12 +57,12 @@ def esgpull_search_and_download_esgf_model_single_var(
 - **Out of scope:** Modifying V2 downloader classes or tests — those are TASK-002 and TASK-004.
 
 ## 5. Acceptance Criteria
-- [ ] AC-1: All three `esgpull_search_and_download_*` functions accept `esg: Esgpull` as their first parameter.
-- [ ] AC-2: All three functions retain `data_dir: Path` as a parameter (used only for `dest_dir` derivation).
-- [ ] AC-3: No call to `isolated_esgpull_context` exists inside any of the three function bodies.
-- [ ] AC-4: `isolated_esgpull_context` remains defined and importable from `esgpull_utils`.
-- [ ] AC-5: `python3 -c "import ast; ast.parse(open('climateset/download/esgpull_utils.py').read())"` exits 0.
-- [ ] AC-6: `make precommit` and `make pylint` exit 0 for `climateset/download/esgpull_utils.py`.
+- [x] AC-1: All three `esgpull_search_and_download_*` functions accept `esg: Esgpull` as their first parameter.
+- [x] AC-2: All three functions retain `data_dir: Path` as a parameter (used only for `dest_dir` derivation).
+- [x] AC-3: No call to `isolated_esgpull_context` exists inside any of the three function bodies.
+- [x] AC-4: `isolated_esgpull_context` remains defined and importable from `esgpull_utils`.
+- [x] AC-5: `python3 -c "import ast; ast.parse(open('climateset/download/esgpull_utils.py').read())"` exits 0.
+- [x] AC-6: `make precommit` and `make pylint` exit 0 for `climateset/download/esgpull_utils.py`.
 
 ## 6. Testing & Validation
 ```bash
